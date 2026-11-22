@@ -135,13 +135,16 @@ select, input[type=text] { background: var(--raised); border: 1px solid rgba(242
 .sdb { table-layout: fixed; }
 .sdb th, .sdb td { padding: 4px; vertical-align: middle; }
 .sdb th:first-child, .sdb td:first-child { padding-left: 0; } .sdb th:last-child, .sdb td:last-child { padding-right: 0; }
-.sdb .c2 { width: 35%; } .sdb .c3 { width: 46px; } .sdb .c4 { width: 38px; }
+.sdb .c1 { width: 96px; } .sdb .c3 { width: 44px; } .sdb .c4 { width: 36px; } .sdb th { vertical-align: bottom; }
+.ax { display: grid; grid-template-columns: minmax(0, 1fr) 24px; gap: 5px; margin-top: 2px; }
+.axt { position: relative; display: block; height: 11px; font-size: 11px; line-height: 1; color: var(--wax3); }
+.axt i { position: absolute; top: 0; left: 0; font-style: normal; transform: translateX(-50%); } .axt i:nth-child(2) { left: 50%; } .axt i:nth-child(3) { left: 100%; }
 .sdb .g { white-space: normal; line-height: 1.15; }
 .sd { display: grid; gap: 3px; }
 .sdl { display: grid; grid-template-columns: minmax(0, 1fr) 24px; gap: 5px; align-items: center; }
 .sdl b { font-weight: 500; font-size: 12.5px; line-height: 1; text-align: right; color: var(--wax2); }
-.sdt { display: flex; height: 6px; background: rgba(242,230,201,.09); overflow: hidden; }
-.sdt i { display: block; height: 100%; flex: none; }
+.sdt { display: flex; height: 6px; overflow: hidden; background: linear-gradient(rgba(242,230,201,.34), rgba(242,230,201,.34)) 50% 0 / 1px 100% no-repeat, rgba(242,230,201,.09); }   /* the rail runs to the top of the scale, with a mark at half way */
+.sdt i { display: block; height: 100%; flex: none; min-width: 2px; }
 .b-d { background: var(--dear); } .b-s { background: var(--cheap); } .b-x { background: var(--gold); }
 .sg { display: inline-grid; justify-items: end; gap: 3px; }
 .sg b { font-weight: 400; line-height: 1.1; }
@@ -1567,16 +1570,16 @@ td.cheap::after { content: " \25BE"; font-size: 11px; } td.dear::after { content
   }
   function ghostOf(S, m, g) { var T = CH.tOf(CH.flows(S, m), g), r = m.ref && m.ref.T[g]; return r > 0 && T && Math.abs(r - T) / T >= 0.2 ? r : 0; }
   function parts(S, m, g) {                // who uses a good at a market and who makes it there, in loads a year: the same sums as the engine's flows
-    var use = [], make = [], pop = Math.max(m.pop, K.LATENT), n = {};
+    var use = [], make = [], pop = Math.max(m.pop, K.LATENT), n = {}, hs = null;
     function add(a, name, v) { for (var i = 0; i < a.length; i++) if (a[i][0] === name) { a[i][1] += v; return; } a.push([name, v]); }
-    D.house.forEach(function (e) { if (e.g === g && CH.live(S, e)) add(use, 'Houses', pop * TPY / e.per); });
+    D.house.forEach(function (e) { if (e.g === g && CH.live(S, e)) { add(use, 'Houses', pop * TPY / e.per); hs = { n: m.pop, each: TPY / e.per }; } });
     WD.sites.forEach(function (s, k) { var d = D.sites[s.t]; if (S.st[k].mk === m.id && d.g === g && CH.live(S, d)) { n[d.n] = (n[d.n] || 0) + 1; add(make, d.n, TPY / d.per); } });
     S.bl.forEach(function (b) {
       if (b.mk !== m.id) return; var d = D.bld[b.t];
       if (d.kind === 'works') { if (b.own && b.mode === 'off') return; n[d.n] = (n[d.n] || 0) + 1; if (d.inp[g]) add(use, d.n, d.inp[g] * TPY / d.time); if (d.out[g]) add(make, d.n, d.out[g] * TPY / d.time); }
       else if (d.kind === 'demand') { d.want.forEach(function (e) { if (e.g === g && CH.live(S, e)) add(use, d.n, TPY / e.per); }); (d.land || []).forEach(function (e) { if (e.g === g) add(make, d.n, TPY / e.per); }); }
     });
-    return { use: use, make: make, n: n };
+    return { use: use, make: make, n: n, hs: hs };
   }
   api.parts = parts;
   function flowLine(S, m, g, who) {        // demand and supply a year, what merchants add or take, and so which way the stock is heading; who = name the users and the makers
@@ -1585,7 +1588,9 @@ td.cheap::after { content: " \25BE"; font-size: 11px; } td.dear::after { content
     var t = p > 0 && s >= 3 * T ? 'Stock full. Price at minimum. Production paused.' : c > 0 && s < 1 ? 'Stock 0. Price at maximum.'
       : d > 0.4 ? 'Stock rising by ' + n1(d) + ' a year. Price falling.' : d < -0.4 ? 'Stock falling by ' + n1(-d) + ' a year. Price rising.' : 'Balanced. Price steady.';
     if (who) {
-      var w = parts(S, m, g), names = function (a) { return a.length ? ': ' + a.map(function (q) { return esc(q[0]) + (w.n[q[0]] > 1 ? ' ×' + w.n[q[0]] : '') + ' ' + n1(q[1]); }).join(', ') : ''; };
+      var w = parts(S, m, g), names = function (a) {      // each user or maker with its loads a year; for houses, the count and what one house uses
+        return a.length ? ': ' + a.map(function (q) { return q[0] === 'Houses' && w.hs ? (w.hs.n < K.LATENT ? 'new market minimum ' + n1(q[1]) : w.hs.n + ' houses × ' + Math.round(w.hs.each * 100) / 100 + (a.length > 1 ? ' = ' + n1(q[1]) : '')) : esc(q[0]) + (w.n[q[0]] > 1 ? ' ×' + w.n[q[0]] : '') + ' ' + n1(q[1]); }).join(', ') : '';
+      };
       return '<p class="kwho"><i class="sw sw-d"></i>Demand <b>' + (c ? n1(c) : '0') + '</b> a year' + names(w.use) + '</p><p class="kwho"><i class="sw sw-s"></i>Supply <b>' + (p ? n1(p) : '0') + '</b> a year' + names(w.make) + '</p>' +
         (imp ? '<p class="kwho"><i class="sw sw-x"></i>Imported <b>' + n1(imp) + '</b> a year by merchants</p>' : '') + (exp ? '<p class="kwho"><i class="sw sw-x"></i>Exported <b>' + n1(exp) + '</b> a year by merchants</p>' : '') + '<p class="kline">' + t + '</p>';
     }
@@ -2554,7 +2559,7 @@ td.cheap::after { content: " \25BE"; font-size: 11px; } td.dear::after { content
   'use strict';
   var CH = root.CH, D = CH.DEF, R = CH.draw, WD = CH.genWorld(), W = D.W, H = D.H, doc = document, G = D.goods, TPY = D.tpy;
   var S, st, SAVE_KEY = 'countinghouse.save.v3', TICKS = 6;
-  var ui = { sel: null, tool: null, hover: null, preview: null, cam: { x: 0, y: 0, z: 1 }, speed: 1, paused: false, modal: null, tab: 'house', reach: false, pick: null, touch: false, confirm: null, canStore: true, lens: null, plain: false, alpha: 1, prev: new WeakMap(), chart: null, whatif: 0, leg: null, lesson: '' };
+  var ui = { sel: null, tool: null, hover: null, preview: null, cam: { x: 0, y: 0, z: 1 }, speed: 1, paused: false, modal: null, tab: 'house', reach: false, pick: null, touch: false, confirm: null, canStore: true, lens: null, plain: false, alpha: 1, prev: new WeakMap(), chart: null, whatif: 0, leg: null, lesson: '', sc: {} };
   var acc = 0, lastTs = 0, lastUi = 0, lastModal = 0, holdUntil = 0, dirty = true, toastUntil = 0, lastSave = 0, newsSeen = 0, prevKey = '', lastMini = 0, tipAt = null;
   function $(id) { return doc.getElementById(id); }
 
@@ -2709,9 +2714,17 @@ td.cheap::after { content: " \25BE"; font-size: 11px; } td.dear::after { content
   function pips(m) {                        // the household needs as pictures, underlined by how well each is supplied
     return '<span class="pips">' + CH.view.needs(S, m).map(function (n) { var k = n.sat >= (n.food ? 0.75 : 0.6) ? 'ok' : n.sat >= 0.35 ? 'mid' : 'low'; return '<span class="pip ' + k + '" title="' + esc(gn(n.g)) + ': ' + (k === 'ok' ? 'supplied' : k === 'mid' ? 'low' : 'missing') + '">' + gi(n.g) + '</span>'; }).join('') + '</span>';
   }
-  function sdBars(w) {                      // one good's demand over its supply on a shared scale; gold is what merchants add to either side
-    var dem = w.c + w.exp, sup = w.p + w.imp, top = Math.max(dem, sup);
-    function seg(v, cls) { return v > 0 && top > 0 ? '<i class="' + cls + '" style="width:' + (v / top * 100).toFixed(1) + '%"></i>' : ''; }
+  var TOPS = [4, 6, 8, 10, 12, 16, 20, 30, 40, 60, 80, 100, 120, 160, 200, 300, 400, 600, 800, 1000, 1200, 1600, 2000];
+  function topFor(v) { for (var i = 0; i < TOPS.length; i++) if (TOPS[i] >= v) return TOPS[i]; return Math.ceil(v / 1000) * 1000; }
+  function sdScale(m, rows) {               // the loads a year at the far end of every bar on a market's board: its largest demand or supply, rounded up. It grows at once and comes down only when well clear, so trade arriving in batches does not make it flicker
+    var big = 0; rows.forEach(function (w) { big = Math.max(big, w.c + w.exp, w.p + w.imp); });
+    var s = ui.sc[m.id] || 0, t = topFor(big), low = topFor(big * 1.2);
+    if (t > s) s = t; else if (low < s) s = low;
+    return (ui.sc[m.id] = s);
+  }
+  function sdBars(w, top) {                 // one good's demand over its supply, on the scale every good at the market shares; gold is what merchants add to either side
+    var dem = w.c + w.exp, sup = w.p + w.imp;
+    function seg(v, cls) { return v > 0 ? '<i class="' + cls + '" style="width:' + Math.min(100, v / top * 100).toFixed(1) + '%"></i>' : ''; }
     function num(v) { return rate(v) || '0'; }
     var say = 'Demand ' + num(dem) + ' a year' + (w.exp ? ' (' + num(w.c) + ' used, ' + num(w.exp) + ' exported)' : '') + '. Supply ' + num(sup) + ' a year' + (w.imp ? ' (' + num(w.p) + ' made, ' + num(w.imp) + ' imported)' : '') + '.';
     return '<span class="sd" role="img" aria-label="' + say + '" title="' + say + '"><span class="sdl"><span class="sdt">' + seg(w.c, 'b-d') + seg(w.exp, 'b-x') + '</span><b>' + num(dem) + '</b></span><span class="sdl"><span class="sdt">' + seg(w.p, 'b-s') + seg(w.imp, 'b-x') + '</span><b>' + num(sup) + '</b></span></span>';
@@ -2728,10 +2741,11 @@ td.cheap::after { content: " \25BE"; font-size: 11px; } td.dear::after { content
     var alt = CH.view.needs(S, m).filter(function (n) { return n.alt && !n.s; })[0];
     if (alt) h += '<p class="hint">' + esc(gn(alt.g)) + ' stock 0: households eat ' + esc(lc(gn(alt.sub))) + '.</p>';
     h += '<h3>Supply and demand</h3><p class="sdkey"><span><i class="sw sw-d"></i>Demand: used</span><span><i class="sw sw-s"></i>Supply: made</span><span><i class="sw sw-x"></i>Merchant trade</span><span><i class="sw sw-t"></i>Target stock</span></p>';
-    h += '<table class="tbl goods sdb"><thead><tr><th>Good</th><th class="c2">Loads a year</th><th class="num c3">Stock</th><th class="num c4">Price</th></tr></thead><tbody>';
-    CH.view.market(S, m).forEach(function (w) {
+    var rows = CH.view.market(S, m), top = sdScale(m, rows);
+    h += '<table class="tbl goods sdb"><thead><tr><th class="c1">Good</th><th class="c2">Loads a year<span class="ax" aria-hidden="true"><span class="axt"><i>0</i><i>' + top / 2 + '</i><i>' + top + '</i></span></span></th><th class="num c3">Stock</th><th class="num c4">Price</th></tr></thead><tbody>';
+    rows.forEach(function (w) {
       var on = ui.chart === w.g;
-      h += '<tr' + (on ? ' class="on"' : '') + '><td>' + B(good(w.g), 'chart', { g: w.g }, 'gl', ' aria-expanded="' + on + '"') + '</td><td>' + sdBars(w) + '</td><td class="num">' + stockGauge(w) + '</td><td class="num ' + (w.mult >= 1.35 ? 'dear' : w.mult <= 0.75 ? 'cheap' : '') + '" title="' + (w.t ? Math.round(w.mult * 100) + '% of base price ' + G[w.g].p : 'Demand 0') + '">' + (w.t ? fmt(w.price) : '<span class="dim">' + fmt(w.price) + '</span>') + '</td></tr>' + (on ? '<tr class="crow"><td colspan="4">' + CH.learn.priceCard(S, m, w.g, ui.whatif) + '</td></tr>' : '');
+      h += '<tr' + (on ? ' class="on"' : '') + '><td>' + B(good(w.g), 'chart', { g: w.g }, 'gl', ' aria-expanded="' + on + '"') + '</td><td>' + sdBars(w, top) + '</td><td class="num">' + stockGauge(w) + '</td><td class="num ' + (w.mult >= 1.35 ? 'dear' : w.mult <= 0.75 ? 'cheap' : '') + '" title="' + (w.t ? Math.round(w.mult * 100) + '% of base price ' + G[w.g].p : 'Demand 0') + '">' + (w.t ? fmt(w.price) : '<span class="dim">' + fmt(w.price) + '</span>') + '</td></tr>' + (on ? '<tr class="crow"><td colspan="4">' + CH.learn.priceCard(S, m, w.g, ui.whatif) + '</td></tr>' : '');
     });
     h += '</tbody></table><p class="hint">Tap a good for its price chart.</p>';
     WD.sites.forEach(function (s, k) { if (S.st[k].mk === m.id && CH.live(S, D.sites[s.t])) here[s.t] = (here[s.t] || 0) + 1; });
@@ -3227,7 +3241,7 @@ td.cheap::after { content: " \25BE"; font-size: 11px; } td.dear::after { content
   /* ---------- saving ---------- */
   function save() { lastSave = performance.now(); try { localStorage.setItem(SAVE_KEY, CH.serialize(S)); ui.canStore = true; return true; } catch (err) { ui.canStore = false; return false; } }
   function load(text) { try { var s = CH.revive(JSON.parse(text)); CH.tick(s); CH.view.route(s, { stops: [] }, null); s.mk.forEach(function (m) { CH.view.market(s, m); }); return s; } catch (err) { return null; } }
-  function newGame() { S = CH.newGame({ seed: (Date.now() % 2147483647) | 1 }); if (st) R.ground(st, S); ui.sel = null; ui.tool = null; ui.pick = null; ui.paused = false; ui.speed = 1; ui.tab = 'house'; newsSeen = S.nn; home(); save(); refresh(); }
+  function newGame() { S = CH.newGame({ seed: (Date.now() % 2147483647) | 1 }); if (st) R.ground(st, S); ui.sel = null; ui.tool = null; ui.pick = null; ui.paused = false; ui.speed = 1; ui.tab = 'house'; ui.sc = {}; newsSeen = S.nn; home(); save(); refresh(); }
   function home() { ui.cam.z = Math.max(R.minZoom(st), Math.min(1, st.vw / 900)); R.center(st, ui.cam, WD.hq.x + 2, WD.hq.y + 1); }
 
   /* ---------- the loop ---------- */

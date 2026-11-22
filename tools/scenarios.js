@@ -339,6 +339,13 @@ module.exports.market = module.exports.small = module.exports.mobile4 = async (p
   await page.evaluate(() => { document.querySelector('#inspect .sdkey').scrollIntoView({ block: 'start' }); }); await wait(page, 300); await shot('2-board');
   const fit = await page.evaluate(() => { const p = document.getElementById('inspect'), t = p.querySelector('.sdb'), r = p.getBoundingClientRect(), q = t.getBoundingClientRect(); return { panel: Math.round(r.width), table: Math.round(q.width), inside: q.right <= r.right + 0.5 && p.scrollWidth <= p.clientWidth + 1, rows: t.querySelectorAll('tbody tr').length, bar: Math.round(t.querySelector('.sdt').getBoundingClientRect().width) }; });
   console.log('board fits its panel:', JSON.stringify(fit));
+  // one scale for the whole board: every bar's length is its loads a year over the number at the end of the axis
+  const scale = await page.evaluate(() => {
+    const t = document.querySelector('#inspect .sdb'), axis = [].map.call(t.querySelectorAll('.axt i'), e => +e.textContent), top = axis[2], S = CH.ui.state(), m = S.mk.find(q => q.id === CH.ui.ui.sel.id), rows = CH.view.market(S, m); let worst = 0, big = 0;
+    [].forEach.call(t.querySelectorAll('tbody tr'), (tr, k) => { const w = rows[k], lines = tr.querySelectorAll('.sdt'); [[w.c + w.exp, lines[0]], [w.p + w.imp, lines[1]]].forEach(q => { const track = q[1].getBoundingClientRect().width, len = [].reduce.call(q[1].children, (a, e) => a + e.getBoundingClientRect().width, 0); big = Math.max(big, q[0]); if (q[0] / top * track >= 3) worst = Math.max(worst, Math.abs(len / track * top - q[0])); }); });
+    return { axis, largest: Math.round(big * 10) / 10, worstErrorInLoads: Math.round(worst * 100) / 100, proportional: worst < top * 0.03 && big <= top && axis[0] === 0 && axis[1] === top / 2 };
+  });
+  console.log('one scale for every bar:', JSON.stringify(scale));
   console.log('rows:', await page.$$eval('#inspect .sdb tbody tr', a => a.slice(0, 16).map(r => r.cells[0].innerText.trim() + ' [' + r.querySelector('.sd').getAttribute('aria-label') + '] stock ' + r.cells[2].innerText.trim() + ' price ' + r.cells[3].innerText.trim()).join('\n      ')));
   await page.click('#inspect [data-act=chart][data-g=rice]'); await wait(page, 400);
   await page.evaluate(() => { document.querySelector('#inspect .sdkey').scrollIntoView({ block: 'start' }); }); await wait(page, 300); await shot('3-chart');

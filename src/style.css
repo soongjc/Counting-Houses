@@ -125,13 +125,16 @@ select, input[type=text] { background: var(--raised); border: 1px solid rgba(242
 .sdb { table-layout: fixed; }
 .sdb th, .sdb td { padding: 4px; vertical-align: middle; }
 .sdb th:first-child, .sdb td:first-child { padding-left: 0; } .sdb th:last-child, .sdb td:last-child { padding-right: 0; }
-.sdb .c2 { width: 35%; } .sdb .c3 { width: 46px; } .sdb .c4 { width: 38px; }
+.sdb .c1 { width: 96px; } .sdb .c3 { width: 44px; } .sdb .c4 { width: 36px; } .sdb th { vertical-align: bottom; }
+.ax { display: grid; grid-template-columns: minmax(0, 1fr) 24px; gap: 5px; margin-top: 2px; }
+.axt { position: relative; display: block; height: 11px; font-size: 11px; line-height: 1; color: var(--wax3); }
+.axt i { position: absolute; top: 0; left: 0; font-style: normal; transform: translateX(-50%); } .axt i:nth-child(2) { left: 50%; } .axt i:nth-child(3) { left: 100%; }
 .sdb .g { white-space: normal; line-height: 1.15; }
 .sd { display: grid; gap: 3px; }
 .sdl { display: grid; grid-template-columns: minmax(0, 1fr) 24px; gap: 5px; align-items: center; }
 .sdl b { font-weight: 500; font-size: 12.5px; line-height: 1; text-align: right; color: var(--wax2); }
-.sdt { display: flex; height: 6px; background: rgba(242,230,201,.09); overflow: hidden; }
-.sdt i { display: block; height: 100%; flex: none; }
+.sdt { display: flex; height: 6px; overflow: hidden; background: linear-gradient(rgba(242,230,201,.34), rgba(242,230,201,.34)) 50% 0 / 1px 100% no-repeat, rgba(242,230,201,.09); }   /* the rail runs to the top of the scale, with a mark at half way */
+.sdt i { display: block; height: 100%; flex: none; min-width: 2px; }
 .b-d { background: var(--dear); } .b-s { background: var(--cheap); } .b-x { background: var(--gold); }
 .sg { display: inline-grid; justify-items: end; gap: 3px; }
 .sg b { font-weight: 400; line-height: 1.1; }

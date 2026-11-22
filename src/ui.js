@@ -3,7 +3,7 @@
   'use strict';
   var CH = root.CH, D = CH.DEF, R = CH.draw, WD = CH.genWorld(), W = D.W, H = D.H, doc = document, G = D.goods, TPY = D.tpy;
   var S, st, SAVE_KEY = 'countinghouse.save.v3', TICKS = 6;
-  var ui = { sel: null, tool: null, hover: null, preview: null, cam: { x: 0, y: 0, z: 1 }, speed: 1, paused: false, modal: null, tab: 'house', reach: false, pick: null, touch: false, confirm: null, canStore: true, lens: null, plain: false, alpha: 1, prev: new WeakMap(), chart: null, whatif: 0, leg: null, lesson: '' };
+  var ui = { sel: null, tool: null, hover: null, preview: null, cam: { x: 0, y: 0, z: 1 }, speed: 1, paused: false, modal: null, tab: 'house', reach: false, pick: null, touch: false, confirm: null, canStore: true, lens: null, plain: false, alpha: 1, prev: new WeakMap(), chart: null, whatif: 0, leg: null, lesson: '', sc: {} };
   var acc = 0, lastTs = 0, lastUi = 0, lastModal = 0, holdUntil = 0, dirty = true, toastUntil = 0, lastSave = 0, newsSeen = 0, prevKey = '', lastMini = 0, tipAt = null;
   function $(id) { return doc.getElementById(id); }
 
@@ -158,9 +158,17 @@
   function pips(m) {                        // the household needs as pictures, underlined by how well each is supplied
     return '<span class="pips">' + CH.view.needs(S, m).map(function (n) { var k = n.sat >= (n.food ? 0.75 : 0.6) ? 'ok' : n.sat >= 0.35 ? 'mid' : 'low'; return '<span class="pip ' + k + '" title="' + esc(gn(n.g)) + ': ' + (k === 'ok' ? 'supplied' : k === 'mid' ? 'low' : 'missing') + '">' + gi(n.g) + '</span>'; }).join('') + '</span>';
   }
-  function sdBars(w) {                      // one good's demand over its supply on a shared scale; gold is what merchants add to either side
-    var dem = w.c + w.exp, sup = w.p + w.imp, top = Math.max(dem, sup);
-    function seg(v, cls) { return v > 0 && top > 0 ? '<i class="' + cls + '" style="width:' + (v / top * 100).toFixed(1) + '%"></i>' : ''; }
+  var TOPS = [4, 6, 8, 10, 12, 16, 20, 30, 40, 60, 80, 100, 120, 160, 200, 300, 400, 600, 800, 1000, 1200, 1600, 2000];
+  function topFor(v) { for (var i = 0; i < TOPS.length; i++) if (TOPS[i] >= v) return TOPS[i]; return Math.ceil(v / 1000) * 1000; }
+  function sdScale(m, rows) {               // the loads a year at the far end of every bar on a market's board: its largest demand or supply, rounded up. It grows at once and comes down only when well clear, so trade arriving in batches does not make it flicker
+    var big = 0; rows.forEach(function (w) { big = Math.max(big, w.c + w.exp, w.p + w.imp); });
+    var s = ui.sc[m.id] || 0, t = topFor(big), low = topFor(big * 1.2);
+    if (t > s) s = t; else if (low < s) s = low;
+    return (ui.sc[m.id] = s);
+  }
+  function sdBars(w, top) {                 // one good's demand over its supply, on the scale every good at the market shares; gold is what merchants add to either side
+    var dem = w.c + w.exp, sup = w.p + w.imp;
+    function seg(v, cls) { return v > 0 ? '<i class="' + cls + '" style="width:' + Math.min(100, v / top * 100).toFixed(1) + '%"></i>' : ''; }
     function num(v) { return rate(v) || '0'; }
     var say = 'Demand ' + num(dem) + ' a year' + (w.exp ? ' (' + num(w.c) + ' used, ' + num(w.exp) + ' exported)' : '') + '. Supply ' + num(sup) + ' a year' + (w.imp ? ' (' + num(w.p) + ' made, ' + num(w.imp) + ' imported)' : '') + '.';
     return '<span class="sd" role="img" aria-label="' + say + '" title="' + say + '"><span class="sdl"><span class="sdt">' + seg(w.c, 'b-d') + seg(w.exp, 'b-x') + '</span><b>' + num(dem) + '</b></span><span class="sdl"><span class="sdt">' + seg(w.p, 'b-s') + seg(w.imp, 'b-x') + '</span><b>' + num(sup) + '</b></span></span>';
@@ -177,10 +185,11 @@
     var alt = CH.view.needs(S, m).filter(function (n) { return n.alt && !n.s; })[0];
     if (alt) h += '<p class="hint">' + esc(gn(alt.g)) + ' stock 0: households eat ' + esc(lc(gn(alt.sub))) + '.</p>';
     h += '<h3>Supply and demand</h3><p class="sdkey"><span><i class="sw sw-d"></i>Demand: used</span><span><i class="sw sw-s"></i>Supply: made</span><span><i class="sw sw-x"></i>Merchant trade</span><span><i class="sw sw-t"></i>Target stock</span></p>';
-    h += '<table class="tbl goods sdb"><thead><tr><th>Good</th><th class="c2">Loads a year</th><th class="num c3">Stock</th><th class="num c4">Price</th></tr></thead><tbody>';
-    CH.view.market(S, m).forEach(function (w) {
+    var rows = CH.view.market(S, m), top = sdScale(m, rows);
+    h += '<table class="tbl goods sdb"><thead><tr><th class="c1">Good</th><th class="c2">Loads a year<span class="ax" aria-hidden="true"><span class="axt"><i>0</i><i>' + top / 2 + '</i><i>' + top + '</i></span></span></th><th class="num c3">Stock</th><th class="num c4">Price</th></tr></thead><tbody>';
+    rows.forEach(function (w) {
       var on = ui.chart === w.g;
-      h += '<tr' + (on ? ' class="on"' : '') + '><td>' + B(good(w.g), 'chart', { g: w.g }, 'gl', ' aria-expanded="' + on + '"') + '</td><td>' + sdBars(w) + '</td><td class="num">' + stockGauge(w) + '</td><td class="num ' + (w.mult >= 1.35 ? 'dear' : w.mult <= 0.75 ? 'cheap' : '') + '" title="' + (w.t ? Math.round(w.mult * 100) + '% of base price ' + G[w.g].p : 'Demand 0') + '">' + (w.t ? fmt(w.price) : '<span class="dim">' + fmt(w.price) + '</span>') + '</td></tr>' + (on ? '<tr class="crow"><td colspan="4">' + CH.learn.priceCard(S, m, w.g, ui.whatif) + '</td></tr>' : '');
+      h += '<tr' + (on ? ' class="on"' : '') + '><td>' + B(good(w.g), 'chart', { g: w.g }, 'gl', ' aria-expanded="' + on + '"') + '</td><td>' + sdBars(w, top) + '</td><td class="num">' + stockGauge(w) + '</td><td class="num ' + (w.mult >= 1.35 ? 'dear' : w.mult <= 0.75 ? 'cheap' : '') + '" title="' + (w.t ? Math.round(w.mult * 100) + '% of base price ' + G[w.g].p : 'Demand 0') + '">' + (w.t ? fmt(w.price) : '<span class="dim">' + fmt(w.price) + '</span>') + '</td></tr>' + (on ? '<tr class="crow"><td colspan="4">' + CH.learn.priceCard(S, m, w.g, ui.whatif) + '</td></tr>' : '');
     });
     h += '</tbody></table><p class="hint">Tap a good for its price chart.</p>';
     WD.sites.forEach(function (s, k) { if (S.st[k].mk === m.id && CH.live(S, D.sites[s.t])) here[s.t] = (here[s.t] || 0) + 1; });
@@ -676,7 +685,7 @@
   /* ---------- saving ---------- */
   function save() { lastSave = performance.now(); try { localStorage.setItem(SAVE_KEY, CH.serialize(S)); ui.canStore = true; return true; } catch (err) { ui.canStore = false; return false; } }
   function load(text) { try { var s = CH.revive(JSON.parse(text)); CH.tick(s); CH.view.route(s, { stops: [] }, null); s.mk.forEach(function (m) { CH.view.market(s, m); }); return s; } catch (err) { return null; } }
-  function newGame() { S = CH.newGame({ seed: (Date.now() % 2147483647) | 1 }); if (st) R.ground(st, S); ui.sel = null; ui.tool = null; ui.pick = null; ui.paused = false; ui.speed = 1; ui.tab = 'house'; newsSeen = S.nn; home(); save(); refresh(); }
+  function newGame() { S = CH.newGame({ seed: (Date.now() % 2147483647) | 1 }); if (st) R.ground(st, S); ui.sel = null; ui.tool = null; ui.pick = null; ui.paused = false; ui.speed = 1; ui.tab = 'house'; ui.sc = {}; newsSeen = S.nn; home(); save(); refresh(); }
   function home() { ui.cam.z = Math.max(R.minZoom(st), Math.min(1, st.vw / 900)); R.center(st, ui.cam, WD.hq.x + 2, WD.hq.y + 1); }
 
   /* ---------- the loop ---------- */

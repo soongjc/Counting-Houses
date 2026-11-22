@@ -1,6 +1,6 @@
 {
   "name": "counting-house",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "A build-and-trade game on the Malacca coast, 1400 to 1511. One HTML page, no server.",
   "scripts": {

@@ -78,16 +78,16 @@
   }
   function ghostOf(S, m, g) { var T = CH.tOf(CH.flows(S, m), g), r = m.ref && m.ref.T[g]; return r > 0 && T && Math.abs(r - T) / T >= 0.2 ? r : 0; }
   function parts(S, m, g) {                // who uses a good at a market and who makes it there, in loads a year: the same sums as the engine's flows
-    var use = [], make = [], pop = Math.max(m.pop, K.LATENT), n = {};
+    var use = [], make = [], pop = Math.max(m.pop, K.LATENT), n = {}, hs = null;
     function add(a, name, v) { for (var i = 0; i < a.length; i++) if (a[i][0] === name) { a[i][1] += v; return; } a.push([name, v]); }
-    D.house.forEach(function (e) { if (e.g === g && CH.live(S, e)) add(use, 'Houses', pop * TPY / e.per); });
+    D.house.forEach(function (e) { if (e.g === g && CH.live(S, e)) { add(use, 'Houses', pop * TPY / e.per); hs = { n: m.pop, each: TPY / e.per }; } });
     WD.sites.forEach(function (s, k) { var d = D.sites[s.t]; if (S.st[k].mk === m.id && d.g === g && CH.live(S, d)) { n[d.n] = (n[d.n] || 0) + 1; add(make, d.n, TPY / d.per); } });
     S.bl.forEach(function (b) {
       if (b.mk !== m.id) return; var d = D.bld[b.t];
       if (d.kind === 'works') { if (b.own && b.mode === 'off') return; n[d.n] = (n[d.n] || 0) + 1; if (d.inp[g]) add(use, d.n, d.inp[g] * TPY / d.time); if (d.out[g]) add(make, d.n, d.out[g] * TPY / d.time); }
       else if (d.kind === 'demand') { d.want.forEach(function (e) { if (e.g === g && CH.live(S, e)) add(use, d.n, TPY / e.per); }); (d.land || []).forEach(function (e) { if (e.g === g) add(make, d.n, TPY / e.per); }); }
     });
-    return { use: use, make: make, n: n };
+    return { use: use, make: make, n: n, hs: hs };
   }
   api.parts = parts;
   function flowLine(S, m, g, who) {        // demand and supply a year, what merchants add or take, and so which way the stock is heading; who = name the users and the makers
@@ -96,7 +96,9 @@
     var t = p > 0 && s >= 3 * T ? 'Stock full. Price at minimum. Production paused.' : c > 0 && s < 1 ? 'Stock 0. Price at maximum.'
       : d > 0.4 ? 'Stock rising by ' + n1(d) + ' a year. Price falling.' : d < -0.4 ? 'Stock falling by ' + n1(-d) + ' a year. Price rising.' : 'Balanced. Price steady.';
     if (who) {
-      var w = parts(S, m, g), names = function (a) { return a.length ? ': ' + a.map(function (q) { return esc(q[0]) + (w.n[q[0]] > 1 ? ' ×' + w.n[q[0]] : '') + ' ' + n1(q[1]); }).join(', ') : ''; };
+      var w = parts(S, m, g), names = function (a) {      // each user or maker with its loads a year; for houses, the count and what one house uses
+        return a.length ? ': ' + a.map(function (q) { return q[0] === 'Houses' && w.hs ? (w.hs.n < K.LATENT ? 'new market minimum ' + n1(q[1]) : w.hs.n + ' houses × ' + Math.round(w.hs.each * 100) / 100 + (a.length > 1 ? ' = ' + n1(q[1]) : '')) : esc(q[0]) + (w.n[q[0]] > 1 ? ' ×' + w.n[q[0]] : '') + ' ' + n1(q[1]); }).join(', ') : '';
+      };
       return '<p class="kwho"><i class="sw sw-d"></i>Demand <b>' + (c ? n1(c) : '0') + '</b> a year' + names(w.use) + '</p><p class="kwho"><i class="sw sw-s"></i>Supply <b>' + (p ? n1(p) : '0') + '</b> a year' + names(w.make) + '</p>' +
         (imp ? '<p class="kwho"><i class="sw sw-x"></i>Imported <b>' + n1(imp) + '</b> a year by merchants</p>' : '') + (exp ? '<p class="kwho"><i class="sw sw-x"></i>Exported <b>' + n1(exp) + '</b> a year by merchants</p>' : '') + '<p class="kline">' + t + '</p>';
     }
