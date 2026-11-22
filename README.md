@@ -1,17 +1,16 @@
 # Counting House
 
-A build-and-trade game set on the Malacca coast, 1400 to 1511. You keep a merchant house: found markets,
-grow the towns around them, build workshops and roads, and send merchants between markets to buy where a
-good is cheap and sell where it is dear. The books close in 1511, and your rank is the coin you hold then.
+A build-and-trade game set on the Malacca coast, 1400 to 1511. Build markets, grow towns, build workshops
+and roads, and run merchants between markets: buy low, sell high. The game ends in 1511. Score: coins held.
 
 ## Play
 
 Open `index.html` in a browser. That one file is the whole game: no server, no install, no build step.
 
 - The game saves itself in the browser's local storage, so it stays on the device and browser you play on.
-- It teaches the economics it runs on. Tap a good in a market for its supply and demand curve, or a good on a
-  route for what each load clears. Thirteen lessons (surplus, arbitrage, opportunity cost and so on) unlock as
-  they happen in your own game.
+- Every market shows demand against supply for each good, with stock and price. Tap a good in a market for
+  its price chart, or a good on a route for its profit chart. Thirteen lessons (surplus, arbitrage,
+  opportunity cost and more) unlock as they happen in your game.
 - The only thing it asks the network for is two typefaces from Google Fonts. Without them it falls back to
   the system's fonts and plays the same.
 
@@ -28,7 +27,7 @@ assembles `index.html` from `src/`. It needs Node and nothing else.
 
 | File | What it holds |
 | --- | --- |
-| `src/world.js` | The setting, as data: goods, sites, buildings, transport, advances, events, and the map generator. Another setting is another world file. |
+| `src/world.js` | The setting, as data: goods, sites, buildings, transport, research, events, and the map generator. Another setting is another world file. |
 | `src/sim.js` | The engine: prices, towns, workshops, pathfinding, merchants. It has no DOM in it and runs in Node. |
 | `src/learn.js` | The teaching: supply and demand charts, trade charts, and the lessons with the rules that unlock them. No DOM; runs in Node. |
 | `src/draw.js` | The map: painted ground, pictures drawn in code, tags, hit-testing. |
@@ -47,8 +46,8 @@ node test/bot.js 111 -q       # a scripted player through the whole game
 node test/learn.js 60 -v      # every lesson and chart, checked against a scripted game (-v prints the lessons)
 ```
 
-`test/bot.js` takes `--auto` to leave every merchant to his own judgment and `--strict` to have written
-orders followed to the letter.
+`test/bot.js` takes `--auto` to set every stop to auto orders and `--strict` to run manual orders in
+exact-amounts mode.
 
 The browser checks drive the built page in headless Chrome by real clicks and taps, and save screenshots
 to `shots/`. They need the font files and Playwright:
@@ -58,7 +57,7 @@ npm install
 npm install --no-save playwright
 npx playwright install chromium
 node build.js
-node tools/shot.js play       # also: basic, info, learn, mobile, mobile2, mobile3, modals, soak, over, room, look
+node tools/shot.js play       # also: basic, info, learn, market, small, mobile, mobile2, mobile3, mobile4, modals, soak, over, room, look
 node tools/csp.js             # the page under a strict content security policy, in a sandboxed frame
 node tools/badsave.js         # damaged saves and blocked storage
 ```

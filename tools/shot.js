@@ -7,8 +7,8 @@ const out = n => path.join(__dirname, '../shots', n + '.png');
   const which = process.argv[2] || 'basic';
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
   const phone = which.indexOf('mobile') === 0;
-  const vp = phone ? { width: 390, height: 780 } : which === 'small' ? { width: 1100, height: 700 } : { width: 1440, height: 900 };
-  const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: phone ? 2 : 1, hasTouch: phone });
+  const vp = phone ? { width: 390, height: 780 } : which === 'small' ? { width: 1100, height: 700 } : { width: 1440, height: +process.env.VH || 900 };     // VH: a taller desktop window, DPR: sharper shots
+  const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: +process.env.DPR || (phone ? 2 : 1), hasTouch: phone });
   const page = await ctx.newPage();
   const errs = [];
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text()); });

@@ -18,9 +18,13 @@ function ok(what, html, need) {
 }
 // every good at every market, with and without a trade tried on it
 S.mk.forEach(m => D.goodIds.forEach(g => [0, 3, -2, 40, -40].forEach(n => ok(`price ${m.name} ${g} ${n}`, L.priceCard(S, m, g, n), /kcard/))));
-// every stop of every route, for every good on the shelves there
+// who uses and who makes each good must add up to the engine's own demand and supply; merchants' net trade is whole loads on one side
+S.mk.forEach(m => { const f = CH.flows(S, m), rows = CH.view.market(S, m); D.goodIds.forEach(g => { const w = L.parts(S, m, g), sum = a => a.reduce((t, q) => t + q[1], 0); checks++; if (Math.abs(sum(w.use) - (f.c[g] || 0)) > 1e-6 || Math.abs(sum(w.make) - (f.p[g] || 0)) > 1e-6) { fails++; console.log('FAIL parts', m.name, g, sum(w.use), f.c[g], sum(w.make), f.p[g]); } }); rows.forEach(w => { checks++; if (!(w.imp >= 0 && w.exp >= 0 && w.imp * w.exp === 0 && w.imp % 1 === 0 && w.exp % 1 === 0)) { fails++; console.log('FAIL trade', m.name, w.g, w.imp, w.exp); } }); });
+const moved = S.mk.reduce((t, m) => t + (m.tf ? Object.keys(m.tf.c.i).length + Object.keys(m.tf.p.i).length + Object.keys(m.tf.c.o).length + Object.keys(m.tf.p.o).length : 0), 0);
+checks++; if (!moved) { fails++; console.log('FAIL no merchant trade recorded at any market'); }
+// every stop of every route, for every good in stock there
 let legs = 0, paying = 0;
-S.rt.forEach(R => R.stops.forEach((st, k) => { const A = CH.mkt(S, st.m), m = S.ms.find(q => q.rt === R.id) || null; D.goodIds.forEach(g => { if (!(A.stock[g] >= 1)) return; const h = L.legCard(S, R, k, g, m); ok(`leg ${R.name} ${k} ${g}`, h, /kcard/); legs++; if (/ pays?: /.test(h)) paying++; }); L.bestLeg(S, R, k, m); }));
+S.rt.forEach(R => R.stops.forEach((st, k) => { const A = CH.mkt(S, st.m), m = S.ms.find(q => q.rt === R.id) || null; D.goodIds.forEach(g => { if (!(A.stock[g] >= 1)) return; const h = L.legCard(S, R, k, g, m); ok(`leg ${R.name} ${k} ${g}`, h, /kcard/); legs++; if (/profitable loads?: /.test(h)) paying++; }); L.bestLeg(S, R, k, m); }));
 // a leg's sums must agree with the engine's own estimate of what a merchant left to himself would load
 let agree = 0, differ = 0;
 S.ms.forEach(m => { const R = m.rt && CH.routeOf(S, m.rt); if (!R || R.stops.length !== 2 || !R.stops.every(s => s.auto)) return; const est = CH.view.route(S, R, m); R.stops.forEach((st, k) => { const got = est.stops[k].got, gs = Object.keys(got); if (gs.length !== 1) return; const A = CH.mkt(S, st.m), B = CH.outlet(S, R, k, gs[0]), q = L.legOf(S, A, B, gs[0], L.terms(m, true)); if (Math.min(q.n, L.terms(m).cap) === got[gs[0]]) agree++; else { differ++; console.log('DIFFER', m.nm, gs[0], 'chart says', q.n, 'engine loads', got[gs[0]]); } }); });

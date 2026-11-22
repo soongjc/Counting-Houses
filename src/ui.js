@@ -49,38 +49,38 @@
   /* ---------- words for states ---------- */
   function mstat(m) {
     var Rt = m.rt ? CH.routeOf(S, m.rt) : null, mk = Rt && Rt.stops[m.si] ? CH.mkt(S, Rt.stops[m.si].m) : null;
-    if (!Rt) return 'No route yet';
-    if (Rt.stops.length < 2) return 'His route needs two stops';
-    if (m.st === 'idle' && m.why === 'orders') return 'No orders at any stop';
-    if (m.st === 'go') return 'On the way to ' + mk.name;
+    if (!Rt) return 'Needs a route';
+    if (Rt.stops.length < 2) return 'Route needs 2 stops';
+    if (m.st === 'idle' && m.why === 'orders') return 'Needs orders';
+    if (m.st === 'go') return 'Travelling to ' + mk.name;
     if (m.st === 'trade') return 'Trading at ' + mk.name;
-    if (m.st === 'wait') return m.why === '$' ? 'Out of credit at ' + mk.name : m.wd ? (G[m.why] ? gn(m.why) + ' is too dear at ' + mk.name : 'Nothing worth carrying at ' + mk.name + ' yet') : 'Waiting for ' + lc(gn(m.why)) + ' at ' + mk.name;
-    if (m.st === 'stuck') return m.why;
-    return 'Standing by';
+    if (m.st === 'wait') return m.why === '$' ? 'Credit limit reached at ' + mk.name : m.wd ? (G[m.why] ? 'Waiting at ' + mk.name + ': ' + lc(gn(m.why)) + ' margin too low' : 'Waiting at ' + mk.name + ' for a profitable load') : 'Waiting for ' + lc(gn(m.why)) + ' at ' + mk.name;
+    if (m.st === 'stuck') return m.why.replace(/\.$/, '');
+    return 'Idle';
   }
   function bstat(b) {
     var d = D.bld[b.t];
-    if (!b.mk) return 'No market reaches it';
+    if (!b.mk) return 'Outside market range';
     if (d.kind !== 'works') return '';
     if (b.st === 'run') return 'Working';
-    if (b.st === 'off') return 'Switched off';
-    if (b.st === 'wait') return b.why === '+' ? 'Idle: its goods are piling up unsold' : b.why === '$' ? 'Idle: it would lose money at today’s prices' : 'Waiting for ' + lc(gn(b.why));
+    if (b.st === 'off') return 'Off';
+    if (b.st === 'wait') return b.why === '+' ? 'Paused: output stock is full' : b.why === '$' ? 'Paused: inputs cost more than the output' : 'Waiting for ' + lc(gn(b.why));
     return 'Ready';
   }
   function moodText(m, md) {
     var miss = md.miss.map(function (g) { return lc(gn(g)); });
-    if (!m.pop) return md.k > 0 ? 'No houses yet, but the shelves are stocked and families are on their way.' : 'No houses yet. Families settle where rice and fish are on the shelves, with at least two of salt, cloth and pottery.';
-    if (md.k < 0) return 'Families are leaving: there is not enough ' + listing(md.low.map(function (g) { return lc(gn(g)); }), 'or') + '.';
-    if (md.full && md.k > 0) return 'No room for more houses. Enlarge the market.';
-    if (md.k === 2) return 'Growing. Every need is met.';
-    if (md.k === 1) return 'Growing slowly: short of ' + listing(miss) + '.';
-    return 'Not growing: short of ' + listing(miss) + '.';
+    if (!m.pop) return md.k > 0 ? 'Needs met. First houses arriving.' : 'Empty. Houses arrive while rice and fish are in stock, plus 2 of salt, cloth and pottery.';
+    if (md.k < 0) return 'Shrinking. Low on ' + listing(md.low.map(function (g) { return lc(gn(g)); })) + '.';
+    if (md.full && md.k > 0) return 'Full. Upgrade the market to add houses.';
+    if (md.k === 2) return 'Growing. All needs met.';
+    if (md.k === 1) return 'Growing slowly. Missing: ' + listing(miss) + '.';
+    return 'Growth paused. Missing: ' + listing(miss) + '.';
   }
   function pics(o) { return Object.keys(o).map(function (g) { return '<span class="rq">' + (o[g] > 1 ? o[g] : '') + gi(g, 1) + '</span>'; }).join(''); }
   function recipePics(d) { return '<div class="recipe">' + pics(d.inp) + '<span class="dim">makes</span>' + pics(d.out) + '</div>'; }
   function recipe(d) {
     function side(o) { return listing(Object.keys(o).map(function (g) { return o[g] + ' ' + lc(gn(g)); })); }
-    return side(d.inp) + ' in, ' + side(d.out) + ' out, ' + rate(TPY / d.time) + ' times a year';
+    return side(d.inp) + ' → ' + side(d.out) + ', ' + rate(TPY / d.time) + ' batches a year';
   }
 
   /* ---------- top bar ---------- */
@@ -89,27 +89,28 @@
     for (id in D.adv) if (CH.advState(S, id) === 'avail') n++;
     setHTML($('date'), '<span class="lab">Year</span><b>' + y + '</b><span class="yr" aria-hidden="true"><i style="width:' + Math.round(part * 100) + '%"></i></span>');
     var net = 0, pop = 0; for (id in S.led.cur) net += S.led.cur[id]; S.mk.forEach(function (m) { pop += m.pop; });
-    setHTML($('coins'), '<span class="lab">Coins</span><b class="' + (S.coins < 0 ? 'neg' : '') + '">' + fmt(S.coins) + '</b>' + (Math.round(net) ? '<span class="delta ' + tone(net) + '" title="Earned and spent so far this year">' + signed(net) + '<span class="lab"> this year</span></span>' : ''));
+    setHTML($('coins'), '<span class="lab">Coins</span><b class="' + (S.coins < 0 ? 'neg' : '') + '">' + fmt(S.coins) + '</b>' + (Math.round(net) ? '<span class="delta ' + tone(net) + '" title="Net income this year">' + signed(net) + '<span class="lab"> this year</span></span>' : ''));
     setHTML($('pop'), '<span class="lab">Houses</span><b>' + pop + '</b>');
     var sp = B('Pause', 'pause', null, 'spd' + (ui.paused ? ' on' : ''), ' aria-pressed="' + ui.paused + '"');
     [1, 2, 4, 8].forEach(function (v) { sp += B(v + '×', 'speed', { v: v }, 'spd' + (!ui.paused && ui.speed === v ? ' on' : ''), ' aria-pressed="' + (!ui.paused && ui.speed === v) + '"'); });
     setHTML($('speed'), sp);
-    setHTML($('menu'), B('Advances' + (n ? '<span class="badge">' + n + '</span>' : ''), 'modal', { name: 'adv' }, 'mbtn') + B('Prices', 'modal', { name: 'prices' }, 'mbtn') + B('Ledger', 'modal', { name: 'ledger' }, 'mbtn') + B('Lessons' + (nl ? '<span class="badge">' + nl + '</span>' : ''), 'modal', { name: 'lessons' }, 'mbtn') + B('Help', 'modal', { name: 'help' }, 'mbtn'));
+    setHTML($('menu'), B('Research' + (n ? '<span class="badge">' + n + '</span>' : ''), 'modal', { name: 'adv' }, 'mbtn') + B('Prices', 'modal', { name: 'prices' }, 'mbtn') + B('Finances', 'modal', { name: 'ledger' }, 'mbtn') + B('Lessons' + (nl ? '<span class="badge">' + nl + '</span>' : ''), 'modal', { name: 'lessons' }, 'mbtn') + B('Help', 'modal', { name: 'help' }, 'mbtn'));
   }
 
   /* ---------- left: what can be built, and the merchants ---------- */
   var TOOLS = [
     ['Markets and paths', [['market', 0], ['market', 1], ['market', 2], ['market', 3], ['path', 'trail'], ['path', 'road']]],
     ['Workshops', [['bld', 'potter'], ['bld', 'carpenter'], ['bld', 'smelter'], ['bld', 'curing'], ['bld', 'weaver'], ['bld', 'goldsmith'], ['bld', 'batikw']]],
-    ['Buildings that buy', [['bld', 'balai'], ['bld', 'mosque'], ['bld', 'shipyard'], ['bld', 'stockade']]],
+    ['Buyers', [['bld', 'balai'], ['bld', 'mosque'], ['bld', 'shipyard'], ['bld', 'stockade']]],
     ['Depots', [['bld', 'harbour'], ['bld', 'caravan']]]
   ];
   function toolDef(k, t) {
-    if (k === 'market') return { n: D.sizes[t].n, cost: D.sizes[t].cost + '', adv: D.sizes[t].adv, ic: 'market' + t, d: 'Everything inside its reach of ' + D.sizes[t].r + ' tiles trades through it: sites start working, workshops can be built, houses appear when their needs are met.' };
-    if (k === 'path') return { n: D.path[t].n, cost: D.path[t].cost + ' a tile', adv: D.path[t].adv, ic: 'i_' + t, d: t === 'trail' ? 'Porters and elephants move at full pace along a trail. Forest and hill cost more to cut; a river needs a bridge.' : 'A made road is faster than a trail, and the only thing ox carts can use.' };
+    if (k === 'market') return { n: D.sizes[t].n, cost: D.sizes[t].cost + '', adv: D.sizes[t].adv, ic: 'market' + t, d: 'Range ' + D.sizes[t].r + ' tiles. Sites in range start producing. Workshops and houses are built in range.' };
+    if (k === 'path') return { n: D.path[t].n, cost: D.path[t].cost + ' a tile', adv: D.path[t].adv, ic: 'i_' + t, d: t === 'trail' ? 'Full speed for porters and elephants. Forest, hills and river crossings cost more.' : 'Faster than a trail. Required for ox carts.' };
     var d = D.bld[t], ws = d.kind === 'demand' ? d.want.filter(function (e) { return CH.live(S, e); }) : null;
     return { n: d.n, cost: d.cost + '', adv: d.adv, ic: 'b_' + t, d: d.d, pics: d.kind === 'works' ? '<span class="tp">' + Object.keys(d.inp).map(function (g) { return gi(g, 1); }).join('') + '<i>▸</i>' + Object.keys(d.out).map(function (g) { return gi(g, 1); }).join('') + '</span>' : ws ? '<span class="tp"><i>buys</i>' + ws.map(function (e) { return gi(e.g, 1); }).join('') + '</span>' : '' };
   }
+  function hireLabel() { var c = CH.hireCost(S); return c ? 'Hire merchant: ' + fmt(c) + ' coins' : 'Hire merchant: free'; }
   function renderLeft() {
     var h = '<h2>Build</h2>';
     TOOLS.forEach(function (grp) {
@@ -117,28 +118,28 @@
       grp[1].forEach(function (q) {
         var d = toolDef(q[0], q[1]); if (d.adv && CH.advState(S, d.adv) === 'later') return;
         var locked = d.adv && !S.adv[d.adv], on = ui.tool && ui.tool.k === q[0] && ui.tool.t === q[1];
-        var inner = ico(d.ic) + '<span class="tn">' + esc(d.n) + '</span><span class="tc">' + (locked ? 'needs ' + esc(D.adv[d.adv].n) : d.cost + (d.pics || '')) + '</span>';
-        rows += locked ? B(inner, 'why', { why: d.n + ' needs the ' + D.adv[d.adv].n + ' advance. Open Advances to buy it.' }, 'tool off', ' aria-disabled="true"') : B(inner, 'tool', { k: q[0], t: q[1] }, 'tool' + (on ? ' on' : ''), ' aria-pressed="' + !!on + '"');
+        var inner = ico(d.ic) + '<span class="tn">' + esc(d.n) + '</span><span class="tc">' + (locked ? 'requires ' + esc(D.adv[d.adv].n) : d.cost + (d.pics || '')) + '</span>';
+        rows += locked ? B(inner, 'why', { why: d.n + ' requires research: ' + D.adv[d.adv].n + '. Open Research.' }, 'tool off', ' aria-disabled="true"') : B(inner, 'tool', { k: q[0], t: q[1] }, 'tool' + (on ? ' on' : ''), ' aria-pressed="' + !!on + '"');
       });
       if (rows) h += '<h3>' + grp[0] + '</h3><div class="tools">' + rows + '</div>';
     });
     setHTML($('build'), h);
-    h = '<h2>Merchants <span class="count">' + S.ms.length + ' of ' + D.hire.cap + '</span></h2>';
-    h += B(CH.hireCost(S) ? 'Hire a merchant for ' + fmt(CH.hireCost(S)) : 'Hire your first merchant', 'modal', { name: 'hire' }, 'btn wide');
-    if (!S.ms.length) h += '<p class="hint">Merchants do all the carrying between markets. New ones start at the counting house.</p>';
+    h = '<h2>Merchants <span class="count">' + S.ms.length + '/' + D.hire.cap + '</span></h2>';
+    h += B(hireLabel(), 'modal', { name: 'hire' }, 'btn wide');
+    if (!S.ms.length) h += '<p class="hint">Merchants carry goods between markets. New hires start at the counting house.</p>';
     h += '<ul class="roster">';
     S.ms.forEach(function (m) {
       var on = ui.sel && ui.sel.k === 'm' && ui.sel.id === m.id, warn = m.st === 'stuck' || !m.rt || (m.st === 'idle' && m.why === 'orders'), cap = CH.capFor(m, m.tr), ld = CH.load(m);
-      h += '<li>' + B('<span class="mi">' + ico('m_' + m.tr) + '<span class="mf" title="Carrying ' + ld + ' of ' + cap + ' loads"><i style="width:' + Math.round(ld / cap * 100) + '%"></i></span></span><span class="mn">' + esc(m.nm) + '</span><span class="mp ' + tone(m.last || 0) + '">' + (m.last == null ? '' : signed(m.last)) + '</span><span class="ms' + (warn ? ' warn' : '') + '">' + esc(mstat(m)) + '</span>', 'sel', { k: 'm', id: m.id }, 'mrow' + (on ? ' on' : '')) + '</li>';
+      h += '<li>' + B('<span class="mi">' + ico('m_' + m.tr) + '<span class="mf" title="Cargo ' + ld + '/' + cap + '"><i style="width:' + Math.round(ld / cap * 100) + '%"></i></span></span><span class="mn">' + esc(m.nm) + '</span><span class="mp ' + tone(m.last || 0) + '">' + (m.last == null ? '' : signed(m.last)) + '</span><span class="ms' + (warn ? ' warn' : '') + '">' + esc(mstat(m)) + '</span>', 'sel', { k: 'm', id: m.id }, 'mrow' + (on ? ' on' : '')) + '</li>';
     });
     setHTML($('roster'), h + '</ul>');
   }
 
   /* ---------- right: whatever is chosen ---------- */
   function head(title, sub, extra) { return '<header class="ih"><div><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + '</div>' + (extra || '') + '</header>'; }
-  function find(x, y) { return B('Show', 'center', { x: Math.round(x), y: Math.round(y) }, 'btn tiny'); }
+  function find(x, y) { return B('Go to', 'center', { x: Math.round(x), y: Math.round(y) }, 'btn tiny'); }
   function inspHouse() {
-    var h = head('The house', 'Rank: ' + CH.rank(S.coins) + '. ' + (S.over ? 'The books closed in ' + D.span[1] + '.' : (D.span[1] - CH.year(S)) + ' years until the books close in ' + D.span[1] + '.')), next = true;
+    var h = head('Overview', 'Rank: ' + CH.rank(S.coins) + '. ' + (S.over ? 'Game ended in ' + D.span[1] + '.' : (D.span[1] - CH.year(S)) + ' years left. Game ends in ' + D.span[1] + '.')), next = true;
     h += '<h3>Goals</h3><ol class="goals">';
     D.goals.forEach(function (g) {
       var done = !!S.goals[g.id]; h += '<li class="' + (done ? 'done' : next ? 'next' : '') + '"><span class="gt">' + esc(g.t) + '</span>' + (g.r ? '<span class="gr">' + g.r + '</span>' : '') + (!done && next && g.h ? '<p class="hint">' + esc(g.h) + '</p>' : '') + '</li>';
@@ -146,142 +147,149 @@
     });
     h += '</ol>';
     if (S.mk.length) {
-      h += '<h3>Towns</h3><table class="tbl"><thead><tr><th>Market</th><th class="num">Houses</th><th>Mood</th><th>Needs</th></tr></thead><tbody>';
-      S.mk.forEach(function (m) { var md = CH.view.mood(S, m); h += '<tr><td>' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') + '</td><td class="num">' + m.pop + '</td><td class="' + (!m.pop ? 'dim' : md.k < 0 ? 'neg' : md.k > 0 ? 'pos' : '') + '">' + (!m.pop && md.k <= 0 ? 'empty' : md.k < 0 ? 'leaving' : md.k === 2 ? 'growing' : md.k === 1 ? 'slowly' : 'steady') + '</td><td>' + pips(m) + '</td></tr>'; });
+      h += '<h3>Towns</h3><table class="tbl"><thead><tr><th>Market</th><th class="num">Houses</th><th>Growth</th><th>Needs</th></tr></thead><tbody>';
+      S.mk.forEach(function (m) { var md = CH.view.mood(S, m); h += '<tr><td>' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') + '</td><td class="num">' + m.pop + '</td><td class="' + (!m.pop ? 'dim' : md.k < 0 ? 'neg' : md.k > 0 ? 'pos' : '') + '">' + (!m.pop && md.k <= 0 ? 'Empty' : md.k < 0 ? 'Shrinking' : md.k === 2 ? 'Growing' : md.k === 1 ? 'Slow' : 'Paused') + '</td><td>' + pips(m) + '</td></tr>'; });
       h += '</tbody></table>';
     }
-    h += '<h3>Notices</h3><ul class="news">';
-    S.news.slice(-7).reverse().forEach(function (n) { h += '<li class="' + n.k + '"><span class="ny">' + (D.span[0] + Math.floor(n.t / TPY)) + '</span>' + esc(n.s) + (n.l ? ' ' + B('Read it', 'lesson', { id: n.l }, 'link') : '') + '</li>'; });
+    h += '<h3>News</h3><ul class="news">';
+    S.news.slice(-7).reverse().forEach(function (n) { h += '<li class="' + n.k + '"><span class="ny">' + (D.span[0] + Math.floor(n.t / TPY)) + '</span>' + esc(n.s) + (n.l ? ' ' + B('Open lesson', 'lesson', { id: n.l }, 'link') : '') + '</li>'; });
     return h + '</ul>';
   }
   function pips(m) {                        // the household needs as pictures, underlined by how well each is supplied
-    return '<span class="pips">' + CH.view.needs(S, m).map(function (n) { var k = n.sat >= (n.food ? 0.75 : 0.6) ? 'ok' : n.sat >= 0.35 ? 'mid' : 'low'; return '<span class="pip ' + k + '" title="' + esc(gn(n.g)) + ': ' + (k === 'ok' ? 'supplied' : k === 'mid' ? 'patchy' : 'missing') + '">' + gi(n.g) + '</span>'; }).join('') + '</span>';
+    return '<span class="pips">' + CH.view.needs(S, m).map(function (n) { var k = n.sat >= (n.food ? 0.75 : 0.6) ? 'ok' : n.sat >= 0.35 ? 'mid' : 'low'; return '<span class="pip ' + k + '" title="' + esc(gn(n.g)) + ': ' + (k === 'ok' ? 'supplied' : k === 'mid' ? 'low' : 'missing') + '">' + gi(n.g) + '</span>'; }).join('') + '</span>';
   }
-  function tradeRows(m) {                   // what to buy here and what to bring here, at a glance
-    var tr = CH.view.trade(S, m), h = '';
-    function items(a, cls) { return a.map(function (w) { return '<span class="ti ' + cls + '">' + gi(w.g, 1) + fmt(w.price) + '</span>'; }).join(''); }
-    if (tr.cheap.length) h += '<div class="trade"><span class="tl">Cheap here</span><span class="tv">' + items(tr.cheap, 'cheap') + '</span></div>';
-    if (tr.dear.length) h += '<div class="trade"><span class="tl">Pays well for</span><span class="tv">' + items(tr.dear, 'dear') + '</span></div>';
-    return h;
+  function sdBars(w) {                      // one good's demand over its supply on a shared scale; gold is what merchants add to either side
+    var dem = w.c + w.exp, sup = w.p + w.imp, top = Math.max(dem, sup);
+    function seg(v, cls) { return v > 0 && top > 0 ? '<i class="' + cls + '" style="width:' + (v / top * 100).toFixed(1) + '%"></i>' : ''; }
+    function num(v) { return rate(v) || '0'; }
+    var say = 'Demand ' + num(dem) + ' a year' + (w.exp ? ' (' + num(w.c) + ' used, ' + num(w.exp) + ' exported)' : '') + '. Supply ' + num(sup) + ' a year' + (w.imp ? ' (' + num(w.p) + ' made, ' + num(w.imp) + ' imported)' : '') + '.';
+    return '<span class="sd" role="img" aria-label="' + say + '" title="' + say + '"><span class="sdl"><span class="sdt">' + seg(w.c, 'b-d') + seg(w.exp, 'b-x') + '</span><b>' + num(dem) + '</b></span><span class="sdl"><span class="sdt">' + seg(w.p, 'b-s') + seg(w.imp, 'b-x') + '</span><b>' + num(sup) + '</b></span></span>';
+  }
+  function stockGauge(w) {                  // stock against the target stock; at the tick the price is the base price
+    if (!w.t) return '<span class="sg"><b>' + w.s + '</b></span>';
+    return '<span class="sg ' + (w.mult >= 1.35 ? 'lo' : w.mult <= 0.75 ? 'hi' : '') + '" title="Stock ' + w.s + ', target ' + (rate(w.t) || '0') + '"><b>' + w.s + '</b><span class="sgt"><i style="width:' + Math.min(100, w.s / (3 * w.t) * 100).toFixed(1) + '%"></i><u></u></span></span>';
   }
   function inspMarket(m) {
-    var sz = D.sizes[m.sz], md = CH.view.mood(S, m), h = head(m.name, sz.n + ', reach ' + sz.r + ' tiles', find(m.x, m.y)), r = CH.rt(S), here = {}, list = '';
-    if (m.sz < D.sizes.length - 1) { var q = CH.can.enlarge(S, m), nx = D.sizes[m.sz + 1]; if (!nx.adv || CH.advState(S, nx.adv) !== 'later') h += gated('Enlarge to ' + lc(nx.n) + ' for ' + (nx.cost - sz.cost), 'enlarge', { id: m.id }, q, 'btn wide') + (q.ok ? '' : '<p class="hint">' + esc(q.why) + '</p>'); }
-    h += '<p class="mood ' + (md.k < 0 ? 'neg' : md.k > 0 ? 'pos' : '') + '"><b>' + m.pop + (m.pop === 1 ? ' house.' : ' houses.') + '</b> ' + moodText(m, md) + '</p><div class="needs">';
-    CH.view.needs(S, m).forEach(function (n) { h += '<div class="need ' + (n.sat >= (n.food ? 0.75 : 0.6) ? 'ok' : n.sat >= 0.35 ? 'mid' : 'low') + '">' + good(n.g) + '<span class="meter"><i style="width:' + Math.round(n.sat * 100) + '%"></i></span><span class="nv">' + (n.s ? n.s + ' in stock' : n.alt ? 'eating ' + lc(gn(n.sub)) : 'none') + '</span></div>'; });
-    h += '</div>' + tradeRows(m) + '<table class="tbl goods"><thead><tr><th>Good</th><th class="num">Stock</th><th class="num">Price</th><th class="num" title="Loads a year the market uses">Uses</th><th class="num" title="Loads a year the market makes">Makes</th></tr></thead><tbody>';
+    var sz = D.sizes[m.sz], md = CH.view.mood(S, m), h = head(m.name, sz.n + ', range ' + sz.r + ' tiles', find(m.x, m.y)), here = {}, list = '';
+    if (m.sz < D.sizes.length - 1) { var q = CH.can.enlarge(S, m), nx = D.sizes[m.sz + 1]; if (!nx.adv || CH.advState(S, nx.adv) !== 'later') h += gated('Upgrade to ' + lc(nx.n) + ': ' + (nx.cost - sz.cost) + ' coins', 'enlarge', { id: m.id }, q, 'btn wide') + (q.ok ? '' : '<p class="hint">' + esc(q.why) + '</p>'); }
+    h += '<p class="mood ' + (md.k < 0 ? 'neg' : md.k > 0 ? 'pos' : '') + '"><b>' + m.pop + (m.pop === 1 ? ' house.' : ' houses.') + '</b> ' + moodText(m, md) + '</p>';
+    h += '<div class="trade"><span class="tl">Needs</span><span class="tv">' + pips(m) + '</span></div>';
+    var alt = CH.view.needs(S, m).filter(function (n) { return n.alt && !n.s; })[0];
+    if (alt) h += '<p class="hint">' + esc(gn(alt.g)) + ' stock 0: households eat ' + esc(lc(gn(alt.sub))) + '.</p>';
+    h += '<h3>Supply and demand</h3><p class="sdkey"><span><i class="sw sw-d"></i>Demand: used</span><span><i class="sw sw-s"></i>Supply: made</span><span><i class="sw sw-x"></i>Merchant trade</span><span><i class="sw sw-t"></i>Target stock</span></p>';
+    h += '<table class="tbl goods sdb"><thead><tr><th>Good</th><th class="c2">Loads a year</th><th class="num c3">Stock</th><th class="num c4">Price</th></tr></thead><tbody>';
     CH.view.market(S, m).forEach(function (w) {
       var on = ui.chart === w.g;
-      h += '<tr' + (on ? ' class="on"' : '') + '><td>' + B(good(w.g), 'chart', { g: w.g }, 'gl', ' aria-expanded="' + on + '"') + '</td><td class="num">' + (w.s || '') + (w.t ? '<span class="sbar ' + (w.mult >= 1.35 ? 'lo' : w.mult <= 0.75 ? 'hi' : '') + '"><i style="width:' + Math.min(100, Math.round(w.s / (3 * w.t) * 100)) + '%"></i></span>' : '') + '</td><td class="num ' + (w.mult >= 1.35 ? 'dear' : w.mult <= 0.75 ? 'cheap' : '') + '" title="' + (w.t ? Math.round(w.mult * 100) + '% of the usual ' + G[w.g].p : 'Nobody here wants it') + '">' + (w.t ? fmt(w.price) : '<span class="dim">' + fmt(w.price) + '</span>') + '</td><td class="num">' + rate(w.c) + '</td><td class="num">' + rate(w.p) + '</td></tr>' + (on ? '<tr class="crow"><td colspan="5">' + CH.learn.priceCard(S, m, w.g, ui.whatif) + '</td></tr>' : '');
+      h += '<tr' + (on ? ' class="on"' : '') + '><td>' + B(good(w.g), 'chart', { g: w.g }, 'gl', ' aria-expanded="' + on + '"') + '</td><td>' + sdBars(w) + '</td><td class="num">' + stockGauge(w) + '</td><td class="num ' + (w.mult >= 1.35 ? 'dear' : w.mult <= 0.75 ? 'cheap' : '') + '" title="' + (w.t ? Math.round(w.mult * 100) + '% of base price ' + G[w.g].p : 'Demand 0') + '">' + (w.t ? fmt(w.price) : '<span class="dim">' + fmt(w.price) + '</span>') + '</td></tr>' + (on ? '<tr class="crow"><td colspan="4">' + CH.learn.priceCard(S, m, w.g, ui.whatif) + '</td></tr>' : '');
     });
-    h += '</tbody></table><p class="hint">Tap a good for its supply and demand curve. <span class="cheap">Cheap</span>: shelves full. <span class="dear">Dear</span>: shelves bare.</p>';
+    h += '</tbody></table><p class="hint">Tap a good for its price chart.</p>';
     WD.sites.forEach(function (s, k) { if (S.st[k].mk === m.id && CH.live(S, D.sites[s.t])) here[s.t] = (here[s.t] || 0) + 1; });
     Object.keys(here).forEach(function (t) { list += '<li>' + esc(D.sites[t].n) + (here[t] > 1 ? ' ×' + here[t] : '') + '<span class="dim"> makes ' + lc(gn(D.sites[t].g)) + '</span></li>'; });
-    S.bl.forEach(function (b) { if (b.mk !== m.id) return; var d = D.bld[b.t], s = bstat(b); list += '<li>' + B(esc(d.n), 'sel', { k: 'bld', id: b.id }, 'link') + (d.kind === 'works' ? '<span class="dim"> ' + (b.own ? 'yours' : 'local') + (s ? ', ' + lc(s) : '') + '</span>' : d.kind === 'demand' ? '<span class="dim"> buys ' + listing(d.want.filter(function (e) { return CH.live(S, e); }).map(function (e) { return lc(gn(e.g)); })) + '</span>' : '') + '</li>'; });
-    if (list) h += '<h3>Inside its reach</h3><ul class="plain">' + list + '</ul>';
+    S.bl.forEach(function (b) { if (b.mk !== m.id) return; var d = D.bld[b.t], s = bstat(b); list += '<li>' + B(esc(d.n), 'sel', { k: 'bld', id: b.id }, 'link') + (d.kind === 'works' ? '<span class="dim"> ' + (b.own ? 'owned' : 'local') + (s ? ', ' + lc(s) : '') + '</span>' : d.kind === 'demand' ? '<span class="dim"> buys ' + listing(d.want.filter(function (e) { return CH.live(S, e); }).map(function (e) { return lc(gn(e.g)); })) + '</span>' : '') + '</li>'; });
+    if (list) h += '<h3>In range</h3><ul class="plain">' + list + '</ul>';
     var call = S.ms.filter(function (q) { var Rt = q.rt && CH.routeOf(S, q.rt); return Rt && Rt.stops.some(function (s) { return s.m === m.id; }); });
-    if (call.length) h += '<h3>Merchants calling here</h3><p>' + call.map(function (q) { return B(esc(q.nm), 'sel', { k: 'm', id: q.id }, 'link'); }).join(', ') + '</p>';
+    if (call.length) h += '<h3>Merchants stopping here</h3><p>' + call.map(function (q) { return B(esc(q.nm), 'sel', { k: 'm', id: q.id }, 'link'); }).join(', ') + '</p>';
     return h;
   }
-  function stepper(n, act, data) { var a = {}, b = {}, k; for (k in data) { a[k] = data[k]; b[k] = data[k]; } a.d = -1; b.d = 1; return '<span class="step">' + B('−', act, a, 'sbtn', ' aria-label="one fewer"') + '<b>' + n + '</b>' + B('+', act, b, 'sbtn', ' aria-label="one more"') + '</span>'; }
+  function stepper(n, act, data) { var a = {}, b = {}, k; for (k in data) { a[k] = data[k]; b[k] = data[k]; } a.d = -1; b.d = 1; return '<span class="step">' + B('−', act, a, 'sbtn', ' aria-label="Decrease"') + '<b>' + n + '</b>' + B('+', act, b, 'sbtn', ' aria-label="Increase"') + '</span>'; }
   function legOn(Rt, k, g) { return !!ui.leg && ui.leg.r === Rt.id && ui.leg.k === k && ui.leg.g === g; }
   function legBox(Rt, k, m) { return ui.leg && ui.leg.r === Rt.id && ui.leg.k === k ? CH.learn.legCard(S, Rt, k, ui.leg.g, m) : ''; }      // the chart of one good's trade, under the stop it leaves from
   function inspMerchant(m) {
     var d = D.trans[m.tr], Rt = m.rt ? CH.routeOf(S, m.rt) : null, cap = CH.capFor(m, m.tr), h = head(m.nm, esc(D.abil[m.ab].n) + '. ' + esc(D.abil[m.ab].d), find(m.x, m.y)), t, g;
     var cargo = Object.keys(m.cargo).map(function (g) { return m.cargo[g] + ' ' + lc(gn(g)); });
-    h += '<div class="card">' + ico('m_' + m.tr) + '<div><b>' + esc(d.n) + '</b>, ' + cap + ' loads. ' + esc(mstat(m)) + '.<br>' + (cargo.length ? 'Carrying ' + listing(cargo) + '.' : 'Carrying nothing.') + (m.qt ? '<br>Changes to ' + lc(D.trans[m.qt].n) + ' at his next stop.' : '') + '</div></div>';
+    h += '<div class="card">' + ico('m_' + m.tr) + '<div><b>' + esc(d.n) + '</b>, capacity ' + cap + '. ' + esc(mstat(m)) + '.<br>' + (cargo.length ? 'Cargo: ' + cargo.join(', ') + '.' : 'Cargo: empty.') + (m.qt ? '<br>Switching to ' + lc(D.trans[m.qt].n) + ' at the next stop.' : '') + '</div></div>';
     var slots = '', used = 0; for (g in m.cargo) for (t = 0; t < m.cargo[g]; t++) { slots += '<span class="slot">' + gi(g, 1) + '</span>'; used++; } for (; used < cap; used++) slots += '<span class="slot"></span>';
     h += '<div class="slots">' + slots + '</div>';
-    h += '<p class="money">Last round <b class="' + tone(m.last || 0) + '">' + (m.last == null ? 'none yet' : signed(m.last)) + '</b>, this year <b class="' + tone(m.yr[0]) + '">' + signed(m.yr[0]) + '</b>, in all <b class="' + tone(m.pr) + '">' + signed(m.pr) + '</b></p>';
-    h += '<label class="field"><span>Travels by</span><select data-ch="trans" data-m="' + m.id + '" data-fk="trans' + m.id + '">';
-    for (t in D.trans) { var td = D.trans[t]; if (td.adv && CH.advState(S, td.adv) === 'later') continue; var q = t === m.tr ? { ok: true, cost: 0 } : CH.can.trans(S, m, t); h += '<option value="' + t + '"' + (t === m.tr ? ' selected' : '') + (q.ok ? '' : ' disabled') + '>' + esc(td.n) + ', ' + capFor(m, t) + ' loads' + (t === m.tr ? '' : q.ok ? ' (' + q.cost + ' coins' + (q.later ? ', at his next stop' : '') + ')' : ' (' + esc(lc(q.why).replace(/\.$/, '')) + ')') + '</option>'; }
+    h += '<p class="money">Profit: last trip <b class="' + tone(m.last || 0) + '">' + (m.last == null ? '–' : signed(m.last)) + '</b>, this year <b class="' + tone(m.yr[0]) + '">' + signed(m.yr[0]) + '</b>, total <b class="' + tone(m.pr) + '">' + signed(m.pr) + '</b></p>';
+    h += '<label class="field"><span>Transport</span><select data-ch="trans" data-m="' + m.id + '" data-fk="trans' + m.id + '">';
+    for (t in D.trans) { var td = D.trans[t]; if (td.adv && CH.advState(S, td.adv) === 'later') continue; var q = t === m.tr ? { ok: true, cost: 0 } : CH.can.trans(S, m, t); h += '<option value="' + t + '"' + (t === m.tr ? ' selected' : '') + (q.ok ? '' : ' disabled') + '>' + esc(td.n) + ', capacity ' + capFor(m, t) + (t === m.tr ? '' : q.ok ? ' (' + q.cost + ' coins' + (q.later ? ', at the next stop' : '') + ')' : ' (' + esc(lc(q.why.split('. ')[0]).replace(/\.$/, '')) + ')') + '</option>'; }
     h += '</select></label><p class="hint">' + esc(d.d) + '</p>';
-    h += '<h3>Route</h3><div class="rowline"><select data-ch="route" data-m="' + m.id + '" data-fk="route' + m.id + '" aria-label="Route"><option value="0">No route</option>';
+    h += '<h3>Route</h3><div class="rowline"><select data-ch="route" data-m="' + m.id + '" data-fk="route' + m.id + '" aria-label="Route"><option value="0">Unassigned</option>';
     S.rt.forEach(function (q) { h += '<option value="' + q.id + '"' + (q.id === m.rt ? ' selected' : '') + '>' + esc(q.name) + '</option>'; });
     h += '</select>' + B('New route', 'newroute', { m: m.id }, 'btn') + '</div>';
-    if (!Rt) h += '<p class="hint">A route is a list of markets to call at, round and round. He works out what to carry between them, and you can write exact orders for any stop. Several merchants can share one route.</p>';
+    if (!Rt) h += '<p class="hint">A route is a loop of market stops. Orders are auto by default. Set manual orders at any stop. Merchants can share a route.</p>';
     else {
       var est = CH.view.route(S, Rt, m), n = Rt.stops.length, mates = S.ms.filter(function (q) { return q.rt === Rt.id && q !== m; }).map(function (q) { return esc(q.nm); });
       h += '<label class="field"><span>Name</span><input type="text" maxlength="28" value="' + esc(Rt.name) + '" data-ch="rname" data-r="' + Rt.id + '" data-fk="rname' + Rt.id + '"></label>';
-      if (mates.length) h += '<p class="hint">Shared with ' + listing(mates) + '. Changes here change their orders too.</p>';
+      if (mates.length) h += '<p class="hint">Shared with ' + listing(mates) + '. Changes apply to all of them.</p>';
       h += '<ol class="stops">';
       Rt.stops.forEach(function (s, k) {
         var mk = CH.mkt(S, s.m), e = est.stops[k], prev = est.stops[(k - 1 + n) % n].hold, cur = m.si === k && n > 1, a = { r: Rt.id, k: k }, rows = '', opts = '', rest = '';
-        h += '<li class="stop' + (cur ? ' cur' : '') + '"><div class="sh"><span class="sn">' + (k + 1) + '</span>' + B(esc(mk.name), 'sel', { k: 'mkt', id: mk.id }, 'link big') + '<span class="sbtns">' + B('▲', 'mvstop', { r: Rt.id, k: k, d: -1 }, 'sbtn', ' aria-label="move up"') + B('▼', 'mvstop', { r: Rt.id, k: k, d: 1 }, 'sbtn', ' aria-label="move down"') + B('×', 'delstop', a, 'sbtn', ' aria-label="remove stop"') + '</span></div>';
-        if (s.un === 'all') h += '<div class="ord"><span class="ol">Unload</span><span class="ov">everything on board ' + B('choose', 'unpick', a, 'link') + '</span></div>';
+        h += '<li class="stop' + (cur ? ' cur' : '') + '"><div class="sh"><span class="sn">' + (k + 1) + '</span>' + B(esc(mk.name), 'sel', { k: 'mkt', id: mk.id }, 'link big') + '<span class="sbtns">' + B('▲', 'mvstop', { r: Rt.id, k: k, d: -1 }, 'sbtn', ' aria-label="Move up"') + B('▼', 'mvstop', { r: Rt.id, k: k, d: 1 }, 'sbtn', ' aria-label="Move down"') + B('×', 'delstop', a, 'sbtn', ' aria-label="Remove stop"') + '</span></div>';
+        if (s.un === 'all') h += '<div class="ord"><span class="ol">Unload</span><span class="ov">All cargo ' + B('Set amounts', 'unpick', a, 'link') + '</span></div>';
         else {
           var gs = {}; for (g in prev) gs[g] = 1; for (g in s.un) gs[g] = 1;
           for (g in gs) rows += '<div class="chip">' + good(g) + stepper(s.un[g] || 0, 'un', { r: Rt.id, k: k, g: g }) + '</div>';
-          h += '<div class="ord"><span class="ol">Unload</span><span class="ov">' + (rows || 'nothing on board when he arrives ') + B('everything', 'unall', a, 'link') + '</span></div>';
+          h += '<div class="ord"><span class="ol">Unload</span><span class="ov">' + (rows || 'Arrives empty. ') + B('All cargo', 'unall', a, 'link') + '</span></div>';
         }
         rows = '';
         if (s.auto) {                        // left to him: he takes whatever will sell for more at the stop where it comes off
           var today = Object.keys(e.got).map(function (g) { return B(e.got[g] + gi(g, 1), 'leg', { r: Rt.id, k: k, g: g }, 'rq lk', ' aria-expanded="' + legOn(Rt, k, g) + '"'); }).join(''), near = today ? null : CH.learn.bestLeg(S, Rt, k, m);
-          h += '<div class="ord"><span class="ol">Load</span><span class="ov">whatever pays best ' + B('choose the goods', 'own', a, 'link') + (n > 1 ? '<span class="today">' + (today ? 'Today that is ' + today : 'Today nothing here is both cheap and worth more at ' + esc(CH.mkt(S, Rt.stops[(k + 1) % n].m).name) + '. ' + (near ? B('See why', 'leg', { r: Rt.id, k: k, g: near }, 'link', ' aria-expanded="' + legOn(Rt, k, near) + '"') : '')) + '</span>' : '') + '</span></div>';
-          h += '<div class="sf">Leaves with ' + e.carry + ' of ' + est.cap + ' loads<b class="' + tone(e.money) + '">' + (Math.round(e.money) ? signed(e.money) : '') + '</b></div>' + legBox(Rt, k, m) + '</li>';
+          h += '<div class="ord"><span class="ol">Load</span><span class="ov">Auto: best profit ' + B('Set manually', 'own', a, 'link') + (n > 1 ? '<span class="today">' + (today ? 'Now: ' + today : 'Now: 0 profitable loads. ' + (near ? B('Show chart', 'leg', { r: Rt.id, k: k, g: near }, 'link', ' aria-expanded="' + legOn(Rt, k, near) + '"') : '')) + '</span>' : '') + '</span></div>';
+          h += '<div class="sf">Cargo on leaving: ' + e.carry + '/' + est.cap + '<b class="' + tone(e.money) + '">' + (Math.round(e.money) ? signed(e.money) : '') + '</b></div>' + legBox(Rt, k, m) + '</li>';
           return;
         }
-        for (g in s.ld) rows += '<div class="chip">' + B(good(g), 'leg', { r: Rt.id, k: k, g: g }, 'gl', ' aria-expanded="' + legOn(Rt, k, g) + '"') + stepper(s.ld[g], 'ld', { r: Rt.id, k: k, g: g }) + '<span class="cs">' + (mk.stock[g] || 0) + ' here at ' + fmt(CH.price(S, mk, g)) + '</span></div>';
+        for (g in s.ld) rows += '<div class="chip">' + B(good(g), 'leg', { r: Rt.id, k: k, g: g }, 'gl', ' aria-expanded="' + legOn(Rt, k, g) + '"') + stepper(s.ld[g], 'ld', { r: Rt.id, k: k, g: g }) + '<span class="cs">stock ' + (mk.stock[g] || 0) + ', price ' + fmt(CH.price(S, mk, g)) + '</span></div>';
         var fl = CH.flows(S, mk);            // only what this market has on its shelves or makes: he cannot load what is never there
-        D.goodIds.forEach(function (g) { if (s.ld[g] || (!mk.stock[g] && !(fl.p[g] > 0))) return; var o = '<option value="' + g + '">' + esc(gn(g)) + (mk.stock[g] ? ', ' + mk.stock[g] + ' in stock at ' + fmt(CH.price(S, mk, g)) : '') + '</option>'; if (mk.stock[g]) opts += o; else rest += o; });
-        h += '<div class="ord"><span class="ol">Load</span><span class="ov">' + rows + '<select data-ch="addload" data-r="' + Rt.id + '" data-s="' + k + '" data-fk="addload' + Rt.id + '.' + k + '" aria-label="Add a good to load at ' + esc(mk.name) + '"><option value="">' + (opts || rest ? 'Add a good…' : 'Nothing else to load here') + '</option>' + (opts ? '<optgroup label="In stock here">' + opts + '</optgroup>' : '') + (rest ? '<optgroup label="Made here, none in stock now">' + rest + '</optgroup>' : '') + '</select><span class="today">' + B('Leave it to him', 'free', a, 'link') + '</span></span></div>';
-        h += '<div class="sf">Leaves with ' + e.carry + ' of ' + est.cap + ' loads<b class="' + tone(e.money) + '">' + (Math.round(e.money) ? signed(e.money) : '') + '</b></div>' + legBox(Rt, k, m) + '</li>';
+        D.goodIds.forEach(function (g) { if (s.ld[g] || (!mk.stock[g] && !(fl.p[g] > 0))) return; var o = '<option value="' + g + '">' + esc(gn(g)) + (mk.stock[g] ? ': stock ' + mk.stock[g] + ', price ' + fmt(CH.price(S, mk, g)) : '') + '</option>'; if (mk.stock[g]) opts += o; else rest += o; });
+        h += '<div class="ord"><span class="ol">Load</span><span class="ov">' + rows + '<select data-ch="addload" data-r="' + Rt.id + '" data-s="' + k + '" data-fk="addload' + Rt.id + '.' + k + '" aria-label="Add a good to load at ' + esc(mk.name) + '"><option value="">' + (opts || rest ? 'Add a good…' : 'All goods added') + '</option>' + (opts ? '<optgroup label="In stock">' + opts + '</optgroup>' : '') + (rest ? '<optgroup label="Made here, stock 0">' + rest + '</optgroup>' : '') + '</select><span class="today">' + B('Switch to auto', 'free', a, 'link') + '</span></span></div>';
+        h += '<div class="sf">Cargo on leaving: ' + e.carry + '/' + est.cap + '<b class="' + tone(e.money) + '">' + (Math.round(e.money) ? signed(e.money) : '') + '</b></div>' + legBox(Rt, k, m) + '</li>';
       });
       h += '</ol>';
-      if (est.over) h += '<p class="warn">These orders ask for more than ' + lc(d.n) + ' can carry. He loads in the order listed and leaves the rest.</p>';
+      if (est.over) h += '<p class="warn">Orders exceed capacity (' + est.cap + '). Goods load in listed order up to capacity.</p>';
       h += '<div class="rowline"><select data-ch="addstop" data-r="' + Rt.id + '" data-fk="addstop' + Rt.id + '" aria-label="Add a stop"><option value="">Add a stop…</option>';
       S.mk.forEach(function (q) { h += '<option value="' + q.id + '">' + esc(q.name) + '</option>'; });
-      h += '</select>' + B(ui.pick === Rt.id ? 'Done picking' : 'Pick on the map', 'pick', { r: Rt.id }, 'btn' + (ui.pick === Rt.id ? ' on' : '')) + '</div>';
+      h += '</select>' + B(ui.pick === Rt.id ? 'Done' : 'Select on map', 'pick', { r: Rt.id }, 'btn' + (ui.pick === Rt.id ? ' on' : '')) + '</div>';
       var mine = Rt.stops.some(function (q) { return !q.auto; }), bare = !Rt.stops.some(function (q) { if (q.auto) return true; for (var g in q.ld) return true; return false; });
-      if (n > 1 && mine) h += '<div class="field wide"><span>Your orders</span><div class="seg" role="group" aria-label="How he follows your orders">' + B('Only while they pay', 'strict', { r: Rt.id, v: 0 }, 'spd' + (Rt.strict ? '' : ' on'), ' aria-pressed="' + !Rt.strict + '"') + B('To the letter', 'strict', { r: Rt.id, v: 1 }, 'spd' + (Rt.strict ? ' on' : ''), ' aria-pressed="' + !!Rt.strict + '"') + '</div></div>';
-      if (n > 1 && bare) h += '<p class="warn">He has no orders at any stop, so he waits where he is. Add a good to load, or leave a stop to him.</p>';
-      else if (n > 1 && !Math.round(est.total) && !CH.load(m)) h += '<p class="warn">Nothing on these shelves is both cheap and worth more at the next stop today, so he waits. Try other markets, or build something that needs what they make.</p>';
-      if (n > 1) h += '<p class="est">At today’s prices a round would make about <b class="' + tone(est.total) + '">' + signed(est.total) + '</b>. ' + (!mine ? 'Left to himself he buys what is cheap where he stands and will sell for more at the next stop. Choose the goods at any stop to give him exact orders.' : Rt.strict ? 'Where you wrote the orders he follows them to the letter, even at a loss, and waits a while for goods that are not there.' : 'Where you wrote the orders, the numbers are the most he will load: he buys a load only while it will sell for more at the stop where it comes off.') + '</p>';
-      else h += '<p class="hint">Add at least two stops. He will work out what to carry between them, and you can change his orders at any stop.</p>';
+      if (n > 1 && mine) h += '<div class="field wide"><span>Manual orders</span><div class="seg" role="group" aria-label="Manual order mode">' + B('Profitable loads', 'strict', { r: Rt.id, v: 0 }, 'spd' + (Rt.strict ? '' : ' on'), ' aria-pressed="' + !Rt.strict + '"') + B('Exact amounts', 'strict', { r: Rt.id, v: 1 }, 'spd' + (Rt.strict ? ' on' : ''), ' aria-pressed="' + !!Rt.strict + '"') + '</div></div>';
+      if (n > 1 && bare) h += '<p class="warn">Every stop is manual with an empty load list. Add a good to load, or switch a stop to auto.</p>';
+      else if (n > 1 && !Math.round(est.total) && !CH.load(m)) h += '<p class="warn">Waiting: 0 profitable loads on this route at current prices. Add another market, or build a buyer for these goods.</p>';
+      if (n > 1) h += '<p class="est">Estimated profit per trip: <b class="' + tone(est.total) + '">' + signed(est.total) + '</b>. ' + (!mine ? 'Auto buys goods above target stock that sell for more at a later stop.' : Rt.strict ? 'Exact amounts: loads the listed amounts at any price and waits for missing stock.' : 'Profitable loads: listed amounts are the maximum. Each load is bought while it still sells at a profit.') + '</p>';
+      else h += '<p class="hint">Add 2 or more stops. Orders are auto by default. Set manual orders at any stop.</p>';
     }
     return h + '<p class="foot">' + B('Dismiss ' + esc(m.nm), 'dismiss', { m: m.id }, 'link danger') + '</p>';
   }
   function capFor(m, t) { return CH.capFor(m, t); }
   function inspBld(b) {
-    var d = D.bld[b.t], m = b.mk ? CH.mkt(S, b.mk) : null, h = head(d.n, m ? 'In ' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') + '’s market' : 'No market reaches it yet', find(b.x, b.y));
+    var d = D.bld[b.t], m = b.mk ? CH.mkt(S, b.mk) : null, h = head(d.n, m ? 'Market: ' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') : 'Outside market range', find(b.x, b.y));
     h += '<div class="card">' + ico('b_' + b.t) + '<div>' + esc(d.d) + '</div></div>';
     if (d.kind === 'works') {
-      h += '<p><b>' + (b.own ? 'Yours.' : 'A local craftsman’s.') + '</b> ' + esc(bstat(b)) + '.</p>' + recipePics(d) + (m ? '<p>' + batch(d, m) + '.</p>' + CH.learn.valueCard(S, d, m) : '') + '<p class="hint">' + recipe(d) + '. It buys what it needs from the market and sells what it makes back to it.</p>';
+      h += '<p><b>' + (b.own ? 'Owner: you.' : 'Owner: local.') + '</b> ' + esc(bstat(b)) + '.</p>' + recipePics(d) + (m ? '<p>' + batch(d, m) + '.</p>' + CH.learn.valueCard(S, d, m) : '') + '<p class="hint">' + recipe(d) + '. Buys inputs from this market and sells the output to it.</p>';
       if (b.own) {
-        h += '<div class="seg" role="group" aria-label="When it works">' + [['auto', 'When it pays'], ['on', 'Always'], ['off', 'Never']].map(function (q) { return B(q[1], 'mode', { id: b.id, mode: q[0] }, 'spd' + (b.mode === q[0] ? ' on' : ''), ' aria-pressed="' + (b.mode === q[0]) + '"'); }).join('') + '</div>';
-        h += '<p class="money">This year <b class="' + tone(b.pr[0]) + '">' + signed(b.pr[0]) + '</b>, last year <b class="' + tone(b.pr[1]) + '">' + signed(b.pr[1]) + '</b>. ' + b.n + ' batches made.</p>' + CH.learn.payback(S, b);
-      } else if (m) h += gated('Buy it for ' + CH.buyCost(b), 'buybld', { id: b.id }, S.coins >= CH.buyCost(b) ? { ok: true } : { ok: false, why: 'Costs ' + CH.buyCost(b) + ' coins.' }, 'btn wide') + '<p class="hint">It works whenever it pays, whoever owns it. Owned, its profit is yours and you can keep it running at a loss or shut it.</p>';
+        h += '<div class="seg" role="group" aria-label="Production mode">' + [['auto', 'Auto'], ['on', 'Always on'], ['off', 'Off']].map(function (q) { return B(q[1], 'mode', { id: b.id, mode: q[0] }, 'spd' + (b.mode === q[0] ? ' on' : ''), ' aria-pressed="' + (b.mode === q[0]) + '"'); }).join('') + '</div>';
+        h += '<p class="money">Profit: this year <b class="' + tone(b.pr[0]) + '">' + signed(b.pr[0]) + '</b>, last year <b class="' + tone(b.pr[1]) + '">' + signed(b.pr[1]) + '</b>. Batches: ' + b.n + '.</p>' + CH.learn.payback(S, b);
+      } else if (m) h += gated('Buy: ' + CH.buyCost(b) + ' coins', 'buybld', { id: b.id }, S.coins >= CH.buyCost(b) ? { ok: true } : { ok: false, why: 'Needs ' + CH.buyCost(b) + ' coins.' }, 'btn wide') + '<p class="hint">Local workshops run on auto. An owned workshop pays you its profit and lets you set the mode.</p>';
     } else if (d.kind === 'demand') {
-      h += '<table class="tbl"><thead><tr><th>Buys</th><th class="num">A year</th><th class="num">On the shelves</th><th class="num">Pays</th></tr></thead><tbody>';
+      h += '<table class="tbl"><thead><tr><th>Buys</th><th class="num">Per year</th><th class="num">Stock</th><th class="num">Price</th></tr></thead><tbody>';
       d.want.forEach(function (e) { if (!CH.live(S, e)) return; h += '<tr><td>' + good(e.g) + '</td><td class="num">' + rate(TPY / e.per) + '</td><td class="num">' + (m ? (m.stock[e.g] || 0) : '') + '</td><td class="num ' + (m && CH.price(S, m, e.g) >= 1.35 * G[e.g].p ? 'dear' : '') + '">' + (m ? fmt(CH.price(S, m, e.g)) : '') + '</td></tr>'; });
-      h += '</tbody></table><p class="hint">It takes what it wants from the market’s shelves. Sell to the market and the price you get depends on how bare those shelves are.</p>';
+      h += '</tbody></table><p class="hint">Buys from this market’s stock. Low stock raises the price your merchants get.</p>';
     }
     return h;
   }
   function inspSite(i) {
-    var s = WD.sites[i], d = D.sites[s.t], q = S.st[i], m = q.mk ? CH.mkt(S, q.mk) : null, h = head(d.n, m ? 'In ' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') + '’s market' : 'Outside every market', find(s.x, s.y));
-    h += '<div class="card">' + ico('s_' + s.t) + '<div>Makes ' + rate(TPY / d.per) + ' loads of ' + gi(d.g) + ' ' + lc(gn(d.g)) + ' a year once a market reaches it.</div></div>';
-    h += '<p>' + (!m ? 'Idle. Found a market close enough for its reach to cover this tile and the site starts working, with a year’s worth ready on the first day.' : q.on ? 'Working.' : 'Idle: ' + lc(gn(d.g)) + ' sells at the floor price in ' + esc(m.name) + ', so nobody bothers. It starts again when the pile is bought down.') + '</p>';
+    var s = WD.sites[i], d = D.sites[s.t], q = S.st[i], m = q.mk ? CH.mkt(S, q.mk) : null, h = head(d.n, m ? 'Market: ' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') : 'Outside market range', find(s.x, s.y));
+    h += '<div class="card">' + ico('s_' + s.t) + '<div>Output: ' + rate(TPY / d.per) + ' loads of ' + gi(d.g) + ' ' + lc(gn(d.g)) + ' a year.</div></div>';
+    h += '<p>' + (!m ? 'Idle. Build a market with this tile in range to start production. The market starts with one year of output in stock.' : q.on ? 'Working.' : 'Paused: ' + lc(gn(d.g)) + ' is at the minimum price in ' + esc(m.name) + '. Production resumes when stock falls.') + '</p>';
     if (m) {
       var f = CH.flows(S, m), n = 0; WD.sites.forEach(function (w, k) { if (w.t === s.t && S.st[k].mk === m.id) n++; });
       h += '<h3>' + esc(gn(d.g)) + ' in ' + esc(m.name) + '</h3><table class="tbl facts"><tbody>' +
-        '<tr><td>On the shelves</td><td class="num"><b>' + (m.stock[d.g] || 0) + '</b> loads</td></tr>' +
-        '<tr><td>Price today</td><td class="num"><b class="' + pcls(m, d.g) + '">' + fmt(CH.price(S, m, d.g)) + '</b> a load <span class="dim">(usually ' + G[d.g].p + ')</span></td></tr>' +
-        '<tr><td>The market makes</td><td class="num"><b>' + rate(f.p[d.g] || 0) + '</b> a year' + (n > 1 ? ' <span class="dim">from ' + n + ' ' + esc(lc(d.pl)) + '</span>' : '') + '</td></tr>' +
-        '<tr><td>and uses</td><td class="num"><b>' + (rate(f.c[d.g] || 0) || '0') + '</b> a year</td></tr></tbody></table>' +
-        '<p class="hint">' + ((f.p[d.g] || 0) > (f.c[d.g] || 0) ? 'More is made here than is used, so the rest piles up and gets cheap: a good thing to carry away.' : 'The town uses all it makes, so little is left to carry away.') + '</p>';
+        '<tr><td>Stock</td><td class="num"><b>' + (m.stock[d.g] || 0) + '</b> loads</td></tr>' +
+        '<tr><td>Price</td><td class="num"><b class="' + pcls(m, d.g) + '">' + fmt(CH.price(S, m, d.g)) + '</b> a load <span class="dim">(base ' + G[d.g].p + ')</span></td></tr>' +
+        '<tr><td>Supply</td><td class="num"><b>' + rate(f.p[d.g] || 0) + '</b> a year' + (n > 1 ? ' <span class="dim">from ' + n + ' ' + esc(lc(d.pl)) + '</span>' : '') + '</td></tr>' +
+        '<tr><td>Demand</td><td class="num"><b>' + (rate(f.c[d.g] || 0) || '0') + '</b> a year</td></tr></tbody></table>' +
+        '<p class="hint">' + ((f.p[d.g] || 0) > (f.c[d.g] || 0) ? 'Surplus: supply exceeds demand here. The price falls. Export it.' : 'Local demand takes the full supply.') + '</p>';
     }
     return h;
   }
   function inspHQ() {
-    return head('The counting house', 'Where the house keeps its books', find(WD.hq.x, WD.hq.y)) + '<div class="card">' + ico('hq') + '<div>New merchants start here. A merchant standing here can change how he travels, and take a boat from the wharf below.</div></div>' + B('Hire a merchant for ' + fmt(CH.hireCost(S)), 'modal', { name: 'hire' }, 'btn wide');
+    return head('Counting house', 'Headquarters', find(WD.hq.x, WD.hq.y)) + '<div class="card">' + ico('hq') + '<div>New merchants start here. Merchants here can switch transport, boats included.</div></div>' + B(hireLabel(), 'modal', { name: 'hire' }, 'btn wide');
   }
   function inspTool() {
-    var t = ui.tool, d = toolDef(t.k, t.t), h = head(d.n, 'Costs ' + d.cost) + '<div class="card">' + ico(d.ic) + '<div>' + esc(d.d) + '</div></div>';
-    if (t.k === 'market') h += '<p class="hint">Two markets cannot share ground, so leave room to enlarge. A market cannot be moved or removed.</p>';
-    if (t.k === 'bld') h += '<p class="hint">Place it on open ground inside a market’s reach.' + (D.bld[t.t].kind === 'works' ? ' It draws its supplies from that market, so put it where they are cheap.' : D.bld[t.t].kind === 'demand' ? ' One to a market.' : '') + '</p>';
-    if (t.k === 'path') h += '<p class="hint">Click where the path starts, then where it ends. The cheapest line between is laid for you, bridges included, and you can carry on from the end. A house in the way moves aside.</p>';
-    return h + B('Put the tool down', 'cancel', null, 'btn wide');
+    var t = ui.tool, d = toolDef(t.k, t.t), h = head(d.n, 'Cost: ' + d.cost) + '<div class="card">' + ico(d.ic) + '<div>' + esc(d.d) + '</div></div>';
+    if (t.k === 'market') h += '<p class="hint">Market ranges stay separate. Leave room to upgrade. Markets are permanent.</p>';
+    if (t.k === 'bld') h += '<p class="hint">Place on open ground inside a market’s range.' + (D.bld[t.t].kind === 'works' ? ' Inputs come from that market: build where they are cheap.' : ' Limit: 1 per market.') + '</p>';
+    if (t.k === 'path') h += '<p class="hint">Click the start, then the end. The cheapest line is built, bridges included. Click again to extend. Houses on the line move aside.</p>';
+    return h + B('Cancel', 'cancel', null, 'btn wide');
   }
   function renderInspect() {
     var s = ui.sel, h, o;
@@ -293,11 +301,11 @@
     else if (s.k === 'site') h = inspSite(s.i);
     else if (s.k === 'hq') h = inspHQ();
     else { ui.sel = null; h = inspHouse(); }
-    if (s && !ui.tool) h = '<p class="back">' + B('‹ The house', 'sel', { k: '' }, 'link') + '</p>' + h;
+    if (s && !ui.tool) h = '<p class="back">' + B('‹ Overview', 'sel', { k: '' }, 'link') + '</p>' + h;
     setHTML($('inspect'), h);
   }
   function renderTabs() {
-    var t = [['house', 'Goals'], ['build', 'Build'], ['merch', 'Merchants'], ['sel', ui.sel ? 'Chosen' : 'House']], h = '';
+    var t = [['house', 'Overview'], ['build', 'Build'], ['merch', 'Merchants'], ['sel', 'Selected']], h = '';
     if (ui.tab === 'sel' && !ui.sel && !ui.tool) ui.tab = 'house';
     t.forEach(function (q) { if (q[0] === 'sel' && !ui.sel && !ui.tool) return; h += B(q[1], 'tab', { t: q[0] }, 'tabb' + (ui.tab === q[0] ? ' on' : ''), ' aria-pressed="' + (ui.tab === q[0]) + '"'); });
     setHTML($('tabs'), h); $('stage').setAttribute('data-tab', ui.tab);
@@ -309,63 +317,63 @@
     if (ui.lens && !G[ui.lens]) ui.lens = null;
     D.goodIds.forEach(function (g) {
       if (!seen[g] && ui.lens !== g) return; var on = ui.lens === g, n = tot[g] || 0;
-      h += B(gi(g) + '<span class="' + (!S.mk.length ? '' : !n && used[g] ? 'neg' : !n ? 'dim' : '') + '">' + (S.mk.length ? n : '') + '</span>', 'lens', { g: g }, 'lb' + (on ? ' on' : ''), ' aria-pressed="' + on + '" title="' + esc(gn(g)) + '" aria-label="' + esc(gn(g)) + (S.mk.length ? ', ' + n + ' loads in your markets' : '') + '. Show it on the map."');
+      h += B(gi(g) + '<span class="' + (!S.mk.length ? '' : !n && used[g] ? 'neg' : !n ? 'dim' : '') + '">' + (S.mk.length ? n : '') + '</span>', 'lens', { g: g }, 'lb' + (on ? ' on' : ''), ' aria-pressed="' + on + '" title="' + esc(gn(g)) + '" aria-label="' + esc(gn(g)) + (S.mk.length ? ': ' + n + ' loads in stock' : '') + '. Show on map."');
     });
     setHTML($('lens'), h);
     var cap = $('lenscap'), g = ui.lens;
-    cap.hidden = !g; setHTML(cap, g ? '<span><b>' + esc(gn(g)) + '</b>, usually ' + G[g].p + ' a load. Each market shows its price and stock; gold rings mark who makes or wants it.</span>' + B('Clear', 'lens', { g: g }, 'btn tiny') : '');
+    cap.hidden = !g; setHTML(cap, g ? '<span><b>' + esc(gn(g)) + '</b>, base price ' + G[g].p + '. Markets show price and stock. Gold rings: makers and buyers.</span>' + B('Clear', 'lens', { g: g }, 'btn tiny') : '');
     setHTML($('zoom'), B('+', 'zoom', { d: 1 }, 'sbtn', ' aria-label="Zoom in"') + B('−', 'zoom', { d: -1 }, 'sbtn', ' aria-label="Zoom out"') +
-      B('◇', 'reach', null, 'sbtn' + (ui.reach ? ' on' : ''), ' aria-pressed="' + !!ui.reach + '" aria-label="Show every market’s reach" title="Show every market’s reach"') +
-      B('◉', 'plain', null, 'sbtn' + (ui.plain ? '' : ' on'), ' aria-pressed="' + !ui.plain + '" aria-label="Show goods and needs on the map" title="Show goods and needs on the map"'));
+      B('◇', 'reach', null, 'sbtn' + (ui.reach ? ' on' : ''), ' aria-pressed="' + !!ui.reach + '" aria-label="Show market ranges" title="Show market ranges"') +
+      B('◉', 'plain', null, 'sbtn' + (ui.plain ? '' : ' on'), ' aria-pressed="' + !ui.plain + '" aria-label="Show goods and needs on map" title="Show goods and needs on map"'));
   }
   function renderBanner() {
     var t = ui.tool, el = $('banner'), h = '', pv = ui.preview;
     if (t) {
       var d = toolDef(t.k, t.t);
       if (t.k === 'path') {
-        h = t.from == null ? '<b>' + esc(d.n) + '</b>, ' + d.cost + '. Click where it starts.' : t.pend != null && pv && pv.tiles ? '<b>' + pv.n + ' tiles of ' + lc(d.n) + '</b> for ' + pv.cost + ' coins. ' + (pv.ok ? '</span>' + B('Lay it', 'lay', null, 'btn gold') + '<span>' : esc(pv.why || '')) : '<b>' + esc(d.n) + '</b>. Now click where it ends.' + (pv && pv.tiles ? ' ' + pv.n + ' tiles, ' + pv.cost + ' coins.' : '');
-      } else h = '<b>' + esc(d.n) + '</b>, ' + d.cost + ' coins. ' + (t.k === 'market' ? 'Click where it should stand.' : 'Click inside a market’s reach.');
+        h = t.from == null ? '<b>' + esc(d.n) + '</b>, ' + d.cost + '. Click the start.' : t.pend != null && pv && pv.tiles ? '<b>' + esc(d.n) + ', ' + pv.n + ' tiles</b>: ' + pv.cost + ' coins. ' + (pv.ok ? '</span>' + B('Build', 'lay', null, 'btn gold') + '<span>' : esc(pv.why || '')) : '<b>' + esc(d.n) + '</b>. Click the end.' + (pv && pv.tiles ? ' ' + pv.n + ' tiles, ' + pv.cost + ' coins.' : '');
+      } else h = '<b>' + esc(d.n) + '</b>, ' + d.cost + ' coins. ' + (t.k === 'market' ? 'Click a tile to build.' : 'Click a tile inside a market’s range.');
       h = '<span>' + h + '</span>' + B(t.k === 'path' && t.from != null ? 'Finish' : 'Cancel', 'cancel', null, 'btn');
-    } else if (ui.pick) { var m = selM(); h = '<span>Click each market ' + (m ? esc(m.nm) : 'he') + ' should call at, in order.</span>' + B('Done', 'pick', { r: ui.pick }, 'btn gold'); }
+    } else if (ui.pick) { var m = selM(); h = '<span>Click the markets for ' + (m ? esc(m.nm) + '’s' : 'the') + ' route, in order.</span>' + B('Done', 'pick', { r: ui.pick }, 'btn gold'); }
     el.hidden = !h; setHTML(el, h);
   }
 
   /* ---------- dialogs ---------- */
   var MODALS = {
     help: function () {
-      return ['How the house makes money',
-        '<p class="lede">Malacca, 1400. You keep a merchant house with ' + fmt(D.startCoins) + ' coins and a hundred and eleven years to grow rich.</p><ol class="how"><li><b>Found a market.</b> Everything inside its reach trades through it: paddies, mines and fisheries start working, and their goods pile up on its shelves.</li>' +
-        '<li><b>Houses come and go by themselves.</b> Families settle where rice and fish are always on the shelves, with at least two of salt, cloth and pottery. Bare shelves send them away.</li>' +
-        '<li><b>Merchants do the carrying.</b> Hire one and click the markets he should call at. Left to himself he buys whatever is cheap where he stands and dear at his next stop. At any stop you can write his orders yourself: exactly what to unload and what to load, to the letter if you wish.</li>' +
-        '<li><b>Lay trails and roads</b> between markets. Porters crawl across open country and stride along a trail.</li>' +
-        '<li><b>Build workshops</b> inside a market’s reach to turn cheap goods into dear ones, and buildings that buy what towns do not.</li>' +
-        '<li><b>Buy advances</b> as they come up: boats, elephants, ox carts, smelting. Each costs less the longer you wait, and old trades die as new ones arrive.</li>' +
-        '<li><b>Lessons</b> unlock as things happen in your game: surplus, shortage, arbitrage and more. Tap any good in a market for its supply and demand curve, and any good on a route for what each load clears.</li></ol>' +
-        '<h3>Reading the map</h3><ul class="legend"><li><i class="lg ok"></i><span>A disc over a site or workshop shows what it makes. Green ring: working. Pale: idle. Red: waiting for the good shown.</span></li>' +
-        '<li><i class="lg low"></i><span>Discs over a palace, mosque or yard show what it buys. Red means its shelves are bare, so the price is good.</span></li>' +
-        '<li><i class="lg mid"></i><span>Under a market’s name, discs show what its houses need: green supplied, gold patchy, red missing. Squares with a small tick show what it has to spare, cheap.</span></li>' +
-        '<li><i class="lg"></i><span>Over a merchant: what he carries. A dotted ring means empty hands. Point at anything, or at its tag, for the figures: what it makes in a year, what is on the shelves, today’s price. Pick a good from the bar above the map to see its price at every market.</span></li></ul>' +
-        '<p class="hint">Drag the map to move, scroll or pinch to zoom. Space pauses, 1 to 4 set the speed, Esc puts a tool down. The books close in ' + D.span[1] + ': your rank is the coin you hold then.</p>' +
-        '<div class="mfoot">' + B('New game', 'asknew', null, 'btn') + B(S.tick ? 'Back to the map' : 'Begin', 'close', null, 'btn gold', ' data-autofocus') + '</div>' +
-        (ui.canStore ? '' : '<p class="hint">This browser is not letting the page keep a save, so the game lasts only while the page stays open.</p>')];
+      return ['How to play',
+        '<p class="lede">Malacca, 1400. You run a trading company with ' + fmt(D.startCoins) + ' coins. The game ends in ' + D.span[1] + '. Score: coins held.</p><ol class="how"><li><b>Build a market.</b> Sites in its range start producing. Their goods go into the market’s stock.</li>' +
+        '<li><b>Grow towns.</b> Houses arrive while rice and fish are in stock, plus 2 of salt, cloth and pottery. Houses leave when food runs low.</li>' +
+        '<li><b>Hire merchants.</b> Select the markets on a route. Auto orders buy low and sell high. Manual orders set exact loads at each stop.</li>' +
+        '<li><b>Build trails and roads</b> between markets. Porters move at double speed on a trail. Ox carts require a road.</li>' +
+        '<li><b>Build workshops and buyers</b> in a market’s range. Workshops turn cheap inputs into higher-priced goods. Buyers add demand.</li>' +
+        '<li><b>Research</b> unlocks transport, buildings and larger markets. The price drops every year. Demand shifts to new goods over time.</li>' +
+        '<li><b>Lessons</b> unlock as events happen in your game. Tap a good in a market for its price chart. Tap a good on a route for its profit chart.</li></ol>' +
+        '<h3>Map icons</h3><ul class="legend"><li><i class="lg ok"></i><span>Disc over a site or workshop: its output. Green ring: working. Pale: idle. Red: waiting for the input shown.</span></li>' +
+        '<li><i class="lg low"></i><span>Discs over a buyer: the goods it buys. Red: stock 0, high price.</span></li>' +
+        '<li><i class="lg mid"></i><span>Discs under a market name: household needs. Green: supplied. Gold: low. Red: missing. Squares with a tick: surplus goods at a low price.</span></li>' +
+        '<li><i class="lg"></i><span>Over a merchant: cargo. Dotted ring: empty. Hover any object for output, stock and price. Select a good in the bar above the map to see its price at every market.</span></li></ul>' +
+        '<p class="hint">Drag to move the map. Scroll or pinch to zoom. Space: pause. 1 to 4: speed. Esc: cancel.</p>' +
+        '<div class="mfoot">' + (S.tick ? B('New game', 'asknew', null, 'btn') : '') + B(S.tick ? 'Resume' : 'Start game', 'close', null, 'btn gold', ' data-autofocus') + '</div>' +
+        (ui.canStore ? '' : '<p class="hint">Saving is blocked in this browser. Progress lasts while this page stays open.</p>')];
     },
     hire: function () {
-      var cost = CH.hireCost(S), h = '<p>Each merchant brings one gift. He starts at the counting house with a file of porters.</p><div class="cands">';
-      S.cand.forEach(function (c, k) { h += '<div class="cand"><h3>' + esc(c.nm) + '</h3><p><b>' + esc(D.abil[c.ab].n) + '.</b> ' + esc(D.abil[c.ab].d) + '</p>' + gated(cost ? 'Hire for ' + fmt(cost) : 'Hire', 'hire', { k: k }, S.ms.length >= D.hire.cap ? { ok: false, why: 'Thirty merchants is all the house can keep.' } : S.coins >= cost ? { ok: true } : { ok: false, why: 'Hiring costs ' + cost + ' coins.' }, 'btn gold') + '</div>'; });
-      return ['Hire a merchant', h + '</div><p class="hint">' + (cost ? '' : 'The first joins for nothing. ') + 'Each hire costs more than the last. A merchant draws ' + D.hire.wage + ' coins a year, plus the keep of whatever carries his goods. New faces turn up every year.</p>'];
+      var cost = CH.hireCost(S), h = '<p>Each merchant has one trait. New hires start at the counting house with porters.</p><div class="cands">';
+      S.cand.forEach(function (c, k) { h += '<div class="cand"><h3>' + esc(c.nm) + '</h3><p><b>' + esc(D.abil[c.ab].n) + '.</b> ' + esc(D.abil[c.ab].d) + '</p>' + gated(cost ? 'Hire: ' + fmt(cost) + ' coins' : 'Hire: free', 'hire', { k: k }, S.ms.length >= D.hire.cap ? { ok: false, why: 'Merchant limit reached: ' + D.hire.cap + '.' } : S.coins >= cost ? { ok: true } : { ok: false, why: 'Needs ' + cost + ' coins.' }, 'btn gold') + '</div>'; });
+      return ['Hire a merchant', h + '</div><p class="hint">' + (cost ? '' : 'First hire: free. ') + 'Each hire costs more than the last. Wage: ' + D.hire.wage + ' coins a year, plus transport upkeep. Candidates change every year.</p>'];
     },
     adv: function () {
       var av = '', own = '', later = '', id;
       for (id in D.adv) {
         var a = D.adv[id], s = CH.advState(S, id), p = CH.advPrice(S, id);
-        if (s === 'avail') av += '<li><div><h3>' + esc(a.n) + '</h3><p>' + esc(a.d) + '</p></div>' + gated('Buy for ' + fmt(p), 'adv', { id: id }, S.coins >= p ? { ok: true } : { ok: false, why: 'Costs ' + p + ' coins.' }, 'btn gold') + '</li>';
-        else if (s === 'own') own += '<li>' + esc(a.n) + '</li>'; else later += '<li>' + esc(a.n) + '<span class="dim"> around ' + a.y + '</span></li>';
+        if (s === 'avail') av += '<li><div><h3>' + esc(a.n) + '</h3><p>' + esc(a.d) + '</p></div>' + gated('Research: ' + fmt(p) + ' coins', 'adv', { id: id }, S.coins >= p ? { ok: true } : { ok: false, why: 'Needs ' + p + ' coins.' }, 'btn gold') + '</li>';
+        else if (s === 'own') own += '<li>' + esc(a.n) + '</li>'; else later += '<li>' + esc(a.n) + '<span class="dim"> ' + a.y + '</span></li>';
       }
-      return ['Advances', (av ? '<ul class="advs">' + av + '</ul><p class="hint">An advance gets cheaper every year and is free to all after fifteen. Buying early buys time.</p>' : '<p>Nothing new is on offer just now.</p>') +
-        (later ? '<h3>Still to come</h3><ul class="cols">' + later + '</ul>' : '') + (own ? '<h3>Yours</h3><ul class="cols">' + own + '</ul>' : '')];
+      return ['Research', (av ? '<ul class="advs">' + av + '</ul><p class="hint">The price drops every year. Free after ' + CH.K.FREE + ' years.</p>' : '<p>All available research is complete.</p>') +
+        (later ? '<h3>Upcoming</h3><ul class="cols">' + later + '</ul>' : '') + (own ? '<h3>Researched</h3><ul class="cols">' + own + '</ul>' : '')];
     },
     prices: function () {
-      if (!S.mk.length) return ['Prices', '<p>No markets yet. Found one and its prices appear here.</p>'];
+      if (!S.mk.length) return ['Prices', '<p>Build a market to see prices.</p>'];
       var h = '<div class="scroll"><table class="tbl grid"><thead><tr><th>Good</th>', seen = {};
       S.mk.forEach(function (m) { h += '<th class="num">' + B(esc(m.name), 'sel', { k: 'mkt', id: m.id }, 'link') + '</th>'; CH.view.market(S, m).forEach(function (w) { seen[w.g] = 1; }); });
       h += '</tr></thead><tbody>';
@@ -374,30 +382,30 @@
         S.mk.forEach(function (m) { var f = CH.flows(S, m), t = CH.tOf(f, g), s = m.stock[g] || 0, p = CH.price(S, m, g), mu = p / G[g].p; h += '<td class="num ' + (!t ? 'dim' : mu >= 1.35 ? 'dear' : mu <= 0.75 ? 'cheap' : '') + '" title="' + s + ' in stock">' + (t || s ? fmt(p) + (s ? '<sub>' + s + '</sub>' : '') : '') + '</td>'; });
         h += '</tr>';
       });
-      return ['Prices', h + '</tbody></table></div><p class="hint">The price of one load in each market, with the stock beside it. The grey figure after each name is the usual price. <span class="cheap">Cheap</span> is three-quarters of that or less, <span class="dear">dear</span> a third more or better. Dim figures are goods nobody there uses: they sell for very little.</p>', 'wide'];
+      return ['Prices', h + '</tbody></table></div><p class="hint">Price per load, with stock in small figures. Grey number after a good: base price. <span class="cheap">Low</span>: 75% of base or less. <span class="dear">High</span>: 135% of base or more. Dim: demand 0 at that market.</p>', 'wide'];
     },
     ledger: function () {
-      var cats = [['sales', 'Goods sold'], ['buys', 'Goods bought'], ['works', 'Workshops'], ['wages', 'Wages and keep'], ['build', 'Building'], ['hire', 'Hiring and transport'], ['adv', 'Advances'], ['goals', 'Guild rewards']], c = S.led.cur, p = S.led.prev, tc = 0, tp = 0;
+      var cats = [['sales', 'Goods sold'], ['buys', 'Goods bought'], ['works', 'Workshops'], ['wages', 'Wages and upkeep'], ['build', 'Construction'], ['hire', 'Hiring and transport'], ['adv', 'Research'], ['goals', 'Goal rewards']], c = S.led.cur, p = S.led.prev, tc = 0, tp = 0;
       var h = '<p>Rank: <b>' + CH.rank(S.coins) + '</b>. ' + D.ranks.map(function (r) { return r[1] + ' from ' + fmt(r[0]); }).join(', ') + '.</p><table class="tbl"><thead><tr><th></th><th class="num">This year</th><th class="num">Last year</th></tr></thead><tbody>';
       cats.forEach(function (q) { var a = c[q[0]] || 0, b = p[q[0]] || 0; tc += a; tp += b; if (Math.round(a) || Math.round(b)) h += '<tr><td>' + q[1] + '</td><td class="num ' + tone(a) + '">' + signed(a) + '</td><td class="num ' + tone(b) + '">' + signed(b) + '</td></tr>'; });
-      h += '<tr class="sum"><td>In all</td><td class="num ' + tone(tc) + '">' + signed(tc) + '</td><td class="num ' + tone(tp) + '">' + signed(tp) + '</td></tr></tbody></table>';
+      h += '<tr class="sum"><td>Net</td><td class="num ' + tone(tc) + '">' + signed(tc) + '</td><td class="num ' + tone(tp) + '">' + signed(tp) + '</td></tr></tbody></table>';
       if (S.ms.length) {
-        h += '<h3>Merchants</h3><div class="scroll"><table class="tbl"><thead><tr><th>Name</th><th>Travels by</th><th>Route</th><th class="num">Last round</th><th class="num">This year</th><th class="num">Last year</th></tr></thead><tbody>';
-        S.ms.forEach(function (m) { var Rt = m.rt && CH.routeOf(S, m.rt); h += '<tr><td>' + B(esc(m.nm), 'sel', { k: 'm', id: m.id }, 'link') + '</td><td>' + D.trans[m.tr].n + '</td><td>' + (Rt ? esc(Rt.name) : '<span class="neg">none</span>') + '</td><td class="num ' + tone(m.last || 0) + '">' + (m.last == null ? '' : signed(m.last)) + '</td><td class="num ' + tone(m.yr[0]) + '">' + signed(m.yr[0]) + '</td><td class="num ' + tone(m.yr[1]) + '">' + signed(m.yr[1]) + '</td></tr>'; });
+        h += '<h3>Merchants</h3><div class="scroll"><table class="tbl"><thead><tr><th>Name</th><th>Transport</th><th>Route</th><th class="num">Last trip</th><th class="num">This year</th><th class="num">Last year</th></tr></thead><tbody>';
+        S.ms.forEach(function (m) { var Rt = m.rt && CH.routeOf(S, m.rt); h += '<tr><td>' + B(esc(m.nm), 'sel', { k: 'm', id: m.id }, 'link') + '</td><td>' + D.trans[m.tr].n + '</td><td>' + (Rt ? esc(Rt.name) : '<span class="neg">Unassigned</span>') + '</td><td class="num ' + tone(m.last || 0) + '">' + (m.last == null ? '' : signed(m.last)) + '</td><td class="num ' + tone(m.yr[0]) + '">' + signed(m.yr[0]) + '</td><td class="num ' + tone(m.yr[1]) + '">' + signed(m.yr[1]) + '</td></tr>'; });
         h += '</tbody></table></div>';
       }
       var mine = S.bl.filter(function (b) { return b.own && D.bld[b.t].kind === 'works'; });
       if (mine.length) {
-        h += '<h3>Your workshops</h3><table class="tbl"><thead><tr><th>Workshop</th><th>Market</th><th>State</th><th class="num">This year</th><th class="num">Last year</th></tr></thead><tbody>';
+        h += '<h3>Owned workshops</h3><table class="tbl"><thead><tr><th>Workshop</th><th>Market</th><th>Status</th><th class="num">This year</th><th class="num">Last year</th></tr></thead><tbody>';
         mine.forEach(function (b) { h += '<tr><td>' + B(D.bld[b.t].n, 'sel', { k: 'bld', id: b.id }, 'link') + '</td><td>' + esc(CH.mkt(S, b.mk).name) + '</td><td>' + esc(bstat(b)) + '</td><td class="num ' + tone(b.pr[0]) + '">' + signed(b.pr[0]) + '</td><td class="num ' + tone(b.pr[1]) + '">' + signed(b.pr[1]) + '</td></tr>'; });
         h += '</tbody></table>';
       }
-      return ['Ledger', h, 'wide'];
+      return ['Finances', h, 'wide'];
     },
     lessons: function () { if (ui.lesson) CH.learn.read(S, ui.lesson); return ['Lessons', CH.learn.book(S, ui.lesson)]; },
     over: function () {
       var n = D.goals.filter(function (g) { return S.goals[g.id]; }).length;
-      return ['The books are closed', '<p class="final">' + D.span[1] + '. A Portuguese fleet stands off Malacca. The house holds <b>' + fmt(S.final) + ' coins</b>. Your rank: <b>' + CH.rank(S.final) + '</b>.</p><p>' + n + ' of ' + D.goals.length + ' goals met. The largest town reached ' + (S.top || 0) + ' houses.</p><div class="mfoot">' + B('New game', 'asknew', null, 'btn') + B('Keep trading', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
+      return ['Game over', '<p class="final">' + D.span[1] + ': the Portuguese fleet arrives at Malacca. Final score: <b>' + fmt(S.final) + ' coins</b>. Rank: <b>' + CH.rank(S.final) + '</b>.</p><p>Goals: ' + n + '/' + D.goals.length + '. Largest town: ' + (S.top || 0) + ' houses.</p><div class="mfoot">' + B('New game', 'asknew', null, 'btn') + B('Keep playing', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
     },
     confirm: function () { var c = ui.confirm; return [c.title, '<p>' + esc(c.text) + '</p><div class="mfoot">' + B('Cancel', 'close', null, 'btn', ' data-autofocus') + B(c.yes, c.act, c.data, 'btn gold') + '</div>']; }
   };
@@ -420,7 +428,7 @@
   function startRoute(m) { CH.act.setRoute(S, m, 0); sweep(); var q = CH.act.newRoute(S); q.R.an = 1; CH.act.setRoute(S, m, q.R.id); ui.pick = q.R.id; ui.tool = null; }
   function addStop(Rt, id) {                // a route nobody has named takes the names of its markets
     var q = CH.act.addStop(S, Rt, id); if (!run(q)) return;
-    if (Rt.an && Rt.stops.length > 1) { var a = CH.mkt(S, Rt.stops[0].m).name, b = CH.mkt(S, Rt.stops[Rt.stops.length - 1].m).name; Rt.name = (Rt.stops.length === 2 ? a + ' and ' + b : a + ' round').slice(0, 28); }
+    if (Rt.an && Rt.stops.length > 1) { var a = CH.mkt(S, Rt.stops[0].m).name, b = CH.mkt(S, Rt.stops[Rt.stops.length - 1].m).name; Rt.name = (Rt.stops.length === 2 ? a + '–' + b : a + ' loop').slice(0, 28); }
   }
   var ACT = {
     why: function (d) { toast(d.why); },
@@ -443,12 +451,12 @@
     hire: function (d) {
       var q = CH.act.hire(S, +d.k); if (!run(q)) return;
       closeModal(); select({ k: 'm', id: q.m.id }); if (!onScreen(q.m.x, q.m.y)) R.center(st, ui.cam, q.m.x, q.m.y);
-      if (S.mk.length > 1) { startRoute(q.m); toast(q.m.nm + ' joins the house. Click the markets he should call at, in order.'); }      // straight to work: a route of his own, ready for its stops
-      else toast(q.m.nm + ' joins the house. He needs two markets to carry between.');
+      if (S.mk.length > 1) { startRoute(q.m); toast(q.m.nm + ' hired. Click the markets for his route, in order.'); }      // straight to work: a route of his own, ready for its stops
+      else toast(q.m.nm + ' hired. Build a second market to set up a route.');
     },
-    dismiss: function (d) { var m = merchant(d.m); if (m) ask('Dismiss ' + m.nm + '?', 'He leaves the house for good, with whatever he is carrying. Hiring a replacement costs ' + fmt(CH.hireCost(S)) + ' coins.', 'Dismiss him', 'dismiss2', { m: m.id }); },
+    dismiss: function (d) { var m = merchant(d.m); if (m) ask('Dismiss ' + m.nm + '?', 'Permanent. His cargo is lost. The next hire costs ' + fmt(CH.hireCost(S)) + ' coins.', 'Dismiss', 'dismiss2', { m: m.id }); },
     dismiss2: function (d) { var m = merchant(d.m); if (m) CH.act.dismiss(S, m); closeModal(); select(null); },
-    newroute: function (d) { startRoute(merchant(d.m)); toast('Click the markets he should call at, in order. He works out what to carry between them.'); },
+    newroute: function (d) { startRoute(merchant(d.m)); toast('Click the markets for the route, in order. Orders start on auto.'); },
     own: function (d) { run(CH.act.own(S, CH.routeOf(S, +d.r), +d.k)); },
     free: function (d) { run(CH.act.free(S, CH.routeOf(S, +d.r), +d.k)); },
     strict: function (d) { CH.act.strict(S, CH.routeOf(S, +d.r), +d.v); },
@@ -462,10 +470,10 @@
     unpick: function (d) { CH.act.setUnload(S, CH.routeOf(S, +d.r), +d.k, null); },
     unall: function (d) { CH.act.setUnload(S, CH.routeOf(S, +d.r), +d.k, 'all'); },
     enlarge: function (d) { var m = CH.mkt(S, +d.id); run(CH.act.enlarge(S, m)); },
-    buybld: function (d) { run(CH.act.buyBld(S, bld(d.id)), 'It is yours.'); },
+    buybld: function (d) { run(CH.act.buyBld(S, bld(d.id)), 'Workshop bought.'); },
     mode: function (d) { run(CH.act.mode(S, bld(d.id), d.mode)); },
-    adv: function (d) { run(CH.act.buyAdv(S, d.id), D.adv[d.id].n + ' is yours.'); },
-    asknew: function () { ask('Start a new game?', 'The game in progress is lost.', 'Start again', 'newgame'); },
+    adv: function (d) { run(CH.act.buyAdv(S, d.id), 'Researched: ' + D.adv[d.id].n + '.'); },
+    asknew: function () { ask('Start a new game?', 'Current progress will be erased.', 'New game', 'newgame'); },
     newgame: function () { closeModal(); newGame(); openModal('help'); }
   };
   function onClick(e) {
@@ -475,7 +483,7 @@
   }
   function onChange(e) {
     var t = e.target, ch = t.getAttribute && t.getAttribute('data-ch'), v = t.value, m, Rt; if (!ch) return;
-    if (ch === 'trans') { m = merchant(t.getAttribute('data-m')); var q = CH.act.trans(S, m, v); run(q, q.ok ? (q.later ? m.nm + ' will change to ' + lc(D.trans[v].n) + ' at his next stop.' : m.nm + ' now travels by ' + lc(D.trans[v].n) + '.') : ''); }
+    if (ch === 'trans') { m = merchant(t.getAttribute('data-m')); var q = CH.act.trans(S, m, v); run(q, q.ok ? (q.later ? m.nm + ' switches to ' + lc(D.trans[v].n) + ' at the next stop.' : m.nm + ' now uses ' + lc(D.trans[v].n) + '.') : ''); }
     else if (ch === 'route') { m = merchant(t.getAttribute('data-m')); CH.act.setRoute(S, m, +v); ui.pick = null; sweep(); }
     else if (ch === 'addstop' && v) addStop(CH.routeOf(S, +t.getAttribute('data-r')), +v);
     else if (ch === 'addload' && v) { Rt = CH.routeOf(S, +t.getAttribute('data-r')); CH.act.setLoad(S, Rt, +t.getAttribute('data-s'), v, 1); }
@@ -503,21 +511,21 @@
     }
     else if (t.k === 'bld') { q = CH.can.build(S, t.t, hv[0], hv[1]); ui.preview = { ok: q.ok, why: q.why, ghost: 'b_' + t.t, m: q.m }; }
     else if (t.from == null) { q = CH.layCost(S, t.t, i); ui.preview = { ok: q >= 0, why: q < 0 ? 'Start on open ground or at a market.' : '' }; }
-    else { q = CH.planPath(S, t.t, t.from, t.pend != null ? t.pend : i); ui.preview = q.ok ? { ok: S.coins >= q.cost && q.n > 0, tiles: q.tiles, from: t.from, cost: q.cost, n: q.n, why: !q.n ? 'That stretch is already laid.' : S.coins < q.cost ? 'Costs ' + q.cost + ' coins. You have ' + Math.floor(S.coins) + '.' : '' } : { ok: false, from: t.from, why: q.why }; }
+    else { q = CH.planPath(S, t.t, t.from, t.pend != null ? t.pend : i); ui.preview = q.ok ? { ok: S.coins >= q.cost && q.n > 0, tiles: q.tiles, from: t.from, cost: q.cost, n: q.n, why: !q.n ? 'Already built.' : S.coins < q.cost ? 'Needs ' + q.cost + ' coins. You have ' + Math.floor(S.coins) + '.' : '' } : { ok: false, from: t.from, why: q.why }; }
   }
   function coverText(c) {
     var a = [], t; for (t in c.sites) a.push(c.sites[t] > 1 ? c.sites[t] + ' ' + D.sites[t].pl : (/^[aeiou]/i.test(D.sites[t].n) ? 'an ' : 'a ') + lc(D.sites[t].n));
     c.blds.forEach(function (b) { a.push('the ' + (b === 'istana' ? D.bld[b].n : lc(D.bld[b].n))); }); if (c.houses) a.push(c.houses + (c.houses > 1 ? ' houses' : ' house'));
-    return a.length ? 'Takes in ' + listing(a) + '.' : 'Nothing here for a market to work with.';
+    return a.length ? 'In range: ' + listing(a) + '.' : 'In range: empty land.';
   }
   function tipText() {                      // with a tool in hand, the pointer says what the tool would do there
     var pv = ui.preview, t = ui.tool;
-    if (t) { if (!pv) return ''; if (!pv.ok) return pv.why || ''; if (t.k === 'market') return coverText(pv.cover) + (pv.blocks.length ? ' So close, it would stop ' + listing(pv.blocks) + ' from ever being enlarged.' : ''); if (t.k === 'bld') return 'In ' + pv.m.name + '’s market.'; if (pv.tiles) return pv.n + ' tiles, ' + pv.cost + ' coins.'; return ''; }
+    if (t) { if (!pv) return ''; if (!pv.ok) return pv.why || ''; if (t.k === 'market') return coverText(pv.cover) + (pv.blocks.length ? ' Blocks future upgrades of ' + listing(pv.blocks) + '.' : ''); if (t.k === 'bld') return 'Market: ' + pv.m.name + '.'; if (pv.tiles) return pv.n + ' tiles, ' + pv.cost + ' coins.'; return ''; }
     return '';
   }
   function layPath(end) {
     var t = ui.tool, q = CH.act.path(S, t.t, t.from, end);
-    if (run(q)) { t.from = end; t.pend = null; prevKey = ''; toast(q.n + ' tiles laid for ' + q.cost + ' coins. Click on to carry on from here.'); } else { t.pend = null; prevKey = ''; }
+    if (run(q)) { t.from = end; t.pend = null; prevKey = ''; toast('Built ' + q.n + ' tiles for ' + q.cost + ' coins. Click again to extend.'); } else { t.pend = null; prevKey = ''; }
   }
   function mapClick(sx, sy) {
     var p = R.pick(st, S, ui.cam, sx, sy, !!ui.tool), t = ui.tool, tt = R.toTile(st, ui.cam, sx, sy), x = Math.round(tt[0]), y = Math.round(tt[1]), q;
@@ -535,7 +543,7 @@
     if (ui.pick) {                           // choosing stops: the market itself, its sign, or anything inside its reach will do, and a stray click changes nothing
       var mk = p.k === 'mkt' ? p.o.m : p.k === 'house' && p.o.h[2] ? CH.mkt(S, p.o.h[2]) : p.k === 'bld' && p.o.b.mk ? CH.mkt(S, p.o.b.mk) : p.k === 'site' && S.st[p.o.i].mk ? CH.mkt(S, S.st[p.o.i].mk) : null;
       if (!mk && inMap(x, y) && CH.rt(S).own[y * W + x]) mk = CH.mkt(S, CH.rt(S).own[y * W + x]);
-      if (mk) addStop(CH.routeOf(S, ui.pick), mk.id); else toast('Click a market, or anywhere inside its reach. Press Done when the route is complete.');
+      if (mk) addStop(CH.routeOf(S, ui.pick), mk.id); else toast('Click a market or any tile in its range. Press Done to finish.');
       refresh(); return;
     }
     if (p.k === 'm') select({ k: 'm', id: p.m.id });
@@ -585,13 +593,13 @@
   }
   function pcls(mk, g) { var mu = CH.price(S, mk, g) / G[g].p; return mu >= 1.35 ? 'dear' : mu <= 0.75 ? 'cheap' : ''; }
   function shelf(mk, g) {                   // one good at one market in a sentence: how much is there and what a load costs
-    return '<b>' + (mk.stock[g] || 0) + '</b> on the shelves at <b class="' + pcls(mk, g) + '">' + fmt(CH.price(S, mk, g)) + '</b> a load <span class="dim">(usually ' + G[g].p + ')</span>';
+    return 'stock <b>' + (mk.stock[g] || 0) + '</b>, price <b class="' + pcls(mk, g) + '">' + fmt(CH.price(S, mk, g)) + '</b> <span class="dim">(base ' + G[g].p + ')</span>';
   }
   function batch(d, mk) {                   // what one batch costs to make and fetches, at this market today
     var cost = 0, val = 0, g, k;
     for (g in d.inp) for (k = 0; k < d.inp[g]; k++) cost += CH.buyP(S, mk, g, -k);
     for (g in d.out) for (k = 0; k < d.out[g]; k++) val += CH.sellP(S, mk, g, k);
-    return 'A batch costs <b>' + fmt(cost) + '</b> to make and sells for <b>' + fmt(val) + '</b> at today’s prices: <b class="' + tone(val - cost) + '">' + signed(val - cost) + '</b>';
+    return 'Batch: inputs <b>' + fmt(cost) + '</b>, output <b>' + fmt(val) + '</b>, profit <b class="' + tone(val - cost) + '">' + signed(val - cost) + '</b>';
   }
   function tipCard(p) {                     // the card for whatever the pointer is over
     var h = '', m, d, o, q;
@@ -600,44 +608,44 @@
     function priced(a, cls) { return a.map(function (w) { return '<span class="ti ' + cls + '">' + gi(w.g, 1) + fmt(w.price) + '</span>'; }).join(''); }
     if (p.k === 'site') {
       o = WD.sites[p.o.i]; d = D.sites[o.t]; if (!CH.live(S, d)) return ''; q = S.st[p.o.i]; m = q.mk ? CH.mkt(S, q.mk) : null;
-      h = top(d.n, !m ? 'no market reaches it' : q.on ? 'working' : 'idle', !m ? '' : q.on ? 'ok' : 'bad');
-      h += row('', gi(d.g) + ' Makes <b>' + rate(TPY / d.per) + '</b> loads of ' + lc(gn(d.g)) + ' a year');
-      if (m) h += row('', 'In ' + esc(m.name) + ': ' + shelf(m, d.g)) + (q.on ? '' : row('', 'The price is at its floor, so nobody works it until the pile is bought down.'));
-      else h += row('', 'Found a market whose reach covers it and it starts working.');
+      h = top(d.n, !m ? 'outside market range' : q.on ? 'working' : 'paused', !m ? '' : q.on ? 'ok' : 'bad');
+      h += row('', gi(d.g) + ' Output: <b>' + rate(TPY / d.per) + '</b> loads of ' + lc(gn(d.g)) + ' a year');
+      if (m) h += row('', esc(m.name) + ': ' + shelf(m, d.g)) + (q.on ? '' : row('', 'Paused at the minimum price. Resumes when stock falls.'));
+      else h += row('', 'Build a market with this tile in range to start production.');
       return h;
     }
     if (p.k === 'bld') {
       var b = p.o.b; d = D.bld[b.t]; m = b.mk ? CH.mkt(S, b.mk) : null;
       if (d.kind === 'works') {
-        h = top(d.n + (b.own ? ', yours' : ''), esc(lc(bstat(b))), b.st === 'run' ? 'ok' : b.st === 'wait' && G[b.why] ? 'bad' : '');
-        h += '<div class="tt">' + pics(d.inp) + '<span class="dim">makes</span>' + pics(d.out) + '<span class="tb"><b>' + rate(TPY / d.time) + '</b> times a year</span></div>';
+        h = top(d.n + (b.own ? ', owned' : ''), esc(lc(bstat(b))), b.st === 'run' ? 'ok' : b.st === 'wait' && G[b.why] ? 'bad' : '');
+        h += '<div class="tt">' + pics(d.inp) + '<span class="dim">makes</span>' + pics(d.out) + '<span class="tb"><b>' + rate(TPY / d.time) + '</b> batches a year</span></div>';
         if (m) h += row('', batch(d, m));
       } else if (d.kind === 'demand') {
-        h = top(d.n, m ? 'buys from ' + esc(m.name) : 'no market reaches it');
-        d.want.forEach(function (e) { if (!CH.live(S, e)) return; h += row('', gi(e.g) + ' ' + esc(gn(e.g)) + ', <b>' + rate(TPY / e.per) + '</b> a year' + (m ? ', pays <b class="' + pcls(m, e.g) + '">' + fmt(CH.price(S, m, e.g)) + '</b>' + ((m.stock[e.g] || 0) < 1 ? ' <span class="neg">none on the shelves</span>' : '') : '')); });
+        h = top(d.n, m ? 'buys from ' + esc(m.name) : 'outside market range');
+        d.want.forEach(function (e) { if (!CH.live(S, e)) return; h += row('', gi(e.g) + ' ' + esc(gn(e.g)) + ': <b>' + rate(TPY / e.per) + '</b> a year' + (m ? ', price <b class="' + pcls(m, e.g) + '">' + fmt(CH.price(S, m, e.g)) + '</b>' + ((m.stock[e.g] || 0) < 1 ? ' <span class="neg">stock 0</span>' : '') : '')); });
       } else h = top(d.n, m ? 'at ' + esc(m.name) : '') + row('', esc(d.d));
       return h;
     }
     if (p.k === 'mkt') {
       m = p.o.m; var md = CH.view.mood(S, m), tr = CH.view.trade(S, m);
-      h = top(m.name, m.pop + (m.pop === 1 ? ' house' : ' houses') + (md.k > 0 ? ', growing' : md.k < 0 ? ', leaving' : ''), md.k > 0 ? 'ok' : md.k < 0 ? 'bad' : '');
-      h += row('Houses need', pips(m));
-      if (tr.cheap.length) h += row('Cheap here', priced(tr.cheap, 'cheap'));
-      if (tr.dear.length) h += row('Pays well for', priced(tr.dear, 'dear'));
+      h = top(m.name, m.pop + (m.pop === 1 ? ' house' : ' houses') + (md.k > 0 ? ', growing' : md.k < 0 ? ', shrinking' : ''), md.k > 0 ? 'ok' : md.k < 0 ? 'bad' : '');
+      h += row('Needs', pips(m));
+      if (tr.cheap.length) h += row('Low price', priced(tr.cheap, 'cheap'));
+      if (tr.dear.length) h += row('High price', priced(tr.dear, 'dear'));
       return h;
     }
     if (p.k === 'm') {
       m = p.m; var cg = Object.keys(m.cargo).map(function (g) { return '<span class="rq">' + m.cargo[g] + gi(g, 1) + '</span>'; }).join('');
       h = top(m.nm, esc(lc(D.trans[m.tr].n))) + row('', esc(mstat(m)));
-      h += row('Carrying', (cg || 'nothing') + ' <span class="dim">' + CH.load(m) + ' of ' + CH.capFor(m, m.tr) + ' loads</span>');
-      if (m.last != null) h += row('Last round', '<b class="' + tone(m.last) + '">' + signed(m.last) + '</b>');
+      h += row('Cargo', (cg || 'empty') + ' <span class="dim">' + CH.load(m) + '/' + CH.capFor(m, m.tr) + '</span>');
+      if (m.last != null) h += row('Last trip', '<b class="' + tone(m.last) + '">' + signed(m.last) + '</b>');
       return h;
     }
     if (p.k === 'house') {
       m = p.o.h[2] ? CH.mkt(S, p.o.h[2]) : null;
-      return top('A house', m ? 'in ' + esc(m.name) : 'no market reaches it') + row('', 'Four households get through, in a year: ' + D.house.filter(function (e) { return CH.live(S, e); }).map(function (e) { return '<span class="rq">' + rate(4 * TPY / e.per) + gi(e.g, 1) + '</span>'; }).join(''));
+      return top('House', m ? esc(m.name) : 'outside market range') + row('', 'Yearly use per 4 houses: ' + D.house.filter(function (e) { return CH.live(S, e); }).map(function (e) { return '<span class="rq">' + rate(4 * TPY / e.per) + gi(e.g, 1) + '</span>'; }).join(''));
     }
-    if (p.k === 'hq') return top('The counting house', 'yours') + row('', 'New merchants start here.');
+    if (p.k === 'hq') return top('Counting house', 'headquarters') + row('', 'New merchants start here.');
     return '';
   }
   function renderTip() {
@@ -677,8 +685,8 @@
     try { step(ts); faults = 0; }
     catch (err) {
       faults++; if (root.console) console.error(err);
-      if (fromSave && S.tick <= loadedTick + 2) { fromSave = false; newGame(); toast('The saved game could not be read, so a new one has begun.'); }
-      else { ui.paused = true; toast('Something went wrong and the game has paused: ' + (err && err.message ? err.message : err)); }
+      if (fromSave && S.tick <= loadedTick + 2) { fromSave = false; newGame(); toast('Save unreadable. New game started.'); }
+      else { ui.paused = true; toast('Error. Game paused: ' + (err && err.message ? err.message : err)); }
     }
     if (faults < 30) root.requestAnimationFrame(frame);
   }

@@ -17,13 +17,13 @@ const srv = http.createServer((req, res) => {
   await p.goto('http://localhost:' + port + '/'); await p.waitForTimeout(1500);
   const f = p.frames().find(fr => fr.url().includes('/frame'));
   const info = await f.evaluate(() => { let ls = 'ok'; try { localStorage.getItem('x'); } catch (e) { ls = 'throws ' + e.name; } const S = CH.ui.state(); return { localStorage: ls, modal: CH.ui.ui.modal, year: CH.year(S), sites: S.st.length, canvas: document.getElementById('map').width, canStore: CH.ui.ui.canStore }; });
-  await f.click('text=Begin'); await p.waitForTimeout(400);
+  await f.click('#modal .mfoot [data-act=close]'); await p.waitForTimeout(400);
   await f.click('#build [data-act=tool][data-k=market][data-t="1"]');
   const pos = await f.evaluate(() => { const u = CH.ui, q = CH.draw.toScreen(u.st, u.ui.cam, 23, 27), r = document.getElementById('map').getBoundingClientRect(); return { x: r.left + q[0], y: r.top + q[1] }; });
   await p.mouse.move(pos.x, pos.y); await p.mouse.click(pos.x, pos.y); await p.waitForTimeout(400);
-  await f.click('#roster >> text=Hire your first merchant'); await f.click('#modal .cand >> nth=0 >> text=Hire'); await p.waitForTimeout(2500);
+  await f.click('#roster [data-act=modal][data-name=hire]'); await f.click('#modal .cand >> nth=0 >> [data-act=hire]'); await p.waitForTimeout(2500);
   const later = await f.evaluate(() => { const S = CH.ui.state(); return { tick: S.tick, markets: S.mk.length, merchants: S.ms.length, icons: [...document.querySelectorAll('canvas[data-ico]')].length }; });
-  await f.click('#top >> text=Help'); await p.waitForTimeout(300);
+  await f.click('#menu [data-name=help]'); await p.waitForTimeout(300);
   const toast = await f.evaluate(() => document.querySelector('#modal .body').textContent.slice(-130));
   await p.screenshot({ path: path.join(__dirname, '../shots/csp.png') });
   console.log(JSON.stringify(info), JSON.stringify(later), '| help ends:', toast);

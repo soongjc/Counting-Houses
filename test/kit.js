@@ -19,7 +19,7 @@ function found(S, name, sz, spread = 2) {            // best-covering valid tile
 function build(S, t, m, near) {                        // nearest valid tile to `near` (default: the market)
   const r = D.sizes[m.sz].r, nx = near ? near[0] : m.x, ny = near ? near[1] : m.y; let best = null, bd = 1e9, why = '';
   for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-    const x = m.x + dx, y = m.y + dy, q = CH.can.build(S, t, x, y); if (!q.ok) { why = why && /reach|ground|stands|path/.test(q.why) ? why : q.why; continue; }
+    const x = m.x + dx, y = m.y + dy, q = CH.can.build(S, t, x, y); if (!q.ok) { why = why && /range|land|occupied/.test(q.why) ? why : q.why; continue; }
     if (q.m !== m) continue;
     const d = Math.hypot(x - nx, y - ny); if (d < bd && d >= 1.2) { bd = d; best = [x, y]; }
   }

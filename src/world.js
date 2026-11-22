@@ -69,83 +69,83 @@
      depot: lets a better transporter use the market. `fixed` buildings stand on the map from the start. */
   var BLD = {
     potter:    { n: 'Potter',           kind: 'works', inp: { clay: 2 },            out: { pottery: 1 }, time: 24,  cost: 350,
-                 d: 'Fires two loads of clay into one of pottery.' },
+                 d: 'Makes pottery from clay.' },
     carpenter: { n: 'Carpenter',        kind: 'works', inp: { timber: 2 },          out: { furn: 1 },    time: 60,  cost: 400,
-                 d: 'Saws two loads of timber into one of furniture.' },
+                 d: 'Makes furniture from timber.' },
     smelter:   { n: 'Tin smelter',      kind: 'works', inp: { ore: 2, timber: 1 },  out: { tin: 1 },     time: 20,  cost: 700, adv: 'smelt',
-                 d: 'Smelts two loads of ore over one of timber into a load of ingots.' },
+                 d: 'Makes tin ingots from tin ore and timber.' },
     curing:    { n: 'Fish-curing shed', kind: 'works', inp: { fish: 4, salt: 1 },   out: { dfish: 4 },   time: 30,  cost: 350, adv: 'curing',
-                 d: 'Salts four loads of fresh fish, with one of salt, into four of dried fish.' },
+                 d: 'Makes dried fish from fresh fish and salt.' },
     weaver:    { n: 'Weaver',           kind: 'works', inp: { cotton: 2 },          out: { cloth: 1 },   time: 30,  cost: 500, adv: 'loom',
-                 d: 'Weaves two loads of cotton into one of cloth.' },
+                 d: 'Makes cloth from cotton.' },
     goldsmith: { n: 'Goldsmith',        kind: 'works', inp: { gold: 2 },            out: { orn: 1 },     time: 150, cost: 900, adv: 'gold',
-                 d: 'Works two loads of gold dust into one of ornaments.' },
+                 d: 'Makes gold ornaments from gold dust.' },
     batikw:    { n: 'Batik workshop',   kind: 'works', inp: { cloth: 2, resin: 1 }, out: { batik: 1 },   time: 120, cost: 800, adv: 'batik',
-                 d: 'Waxes and dyes two loads of cloth, with one of resin, into a load of batik.' },
+                 d: 'Makes batik from cloth and resin.' },
     istana:    { n: 'Istana',           kind: 'demand', fixed: 1,
                  want: [{ g: 'furn', per: 150 }, { g: 'pepper', per: 300 }, { g: 'porc', per: 400 }, { g: 'orn', per: 300, from: 'ornaments' }, { g: 'batik', per: 320, from: 'batikcourt' }],
-                 d: 'The Sultan\'s palace. The court pays well for fine things and never tires of them.' },
+                 d: 'The Sultan\'s palace. Buys luxury goods all year.' },
     quarter:   { n: 'Foreign quarter',  kind: 'demand', fixed: 1,
                  want: [{ g: 'ore', per: 12, until: 'ingots' }, { g: 'tin', per: 20, from: 'ingots' }, { g: 'pepper', per: 30 }, { g: 'gold', per: 120 }],
                  land: [{ g: 'cloth', per: 100, cap: 8 }, { g: 'porc', per: 300, cap: 4 }],
-                 d: 'Gujarati, Tamil and Chinese ships anchor here. They buy tin, pepper and gold. For every load they buy they land a load of cloth, and now and then porcelain.' },
+                 d: 'Foreign ships trade here. Buys tin, pepper and gold dust. Each load bought adds 1 cloth to the market. Every 4th load adds 1 porcelain.' },
     balai:     { n: 'Balai',            kind: 'demand', cost: 800,
                  want: [{ g: 'furn', per: 260 }, { g: 'cloth', per: 240 }, { g: 'pepper', per: 320 }],
-                 d: 'A chief\'s audience hall. It buys furniture, cloth and pepper.' },
+                 d: 'A chief\'s hall. Buys furniture, cloth and pepper.' },
     mosque:    { n: 'Mosque',           kind: 'demand', cost: 900, adv: 'mosque',
                  want: [{ g: 'resin', per: 250 }, { g: 'pottery', per: 300 }, { g: 'furn', per: 500 }],
-                 d: 'Buys resin for incense, pottery and furniture.' },
+                 d: 'Buys resin, pottery and furniture.' },
     shipyard:  { n: 'Shipyard',         kind: 'demand', cost: 1000, adv: 'ship', water: 1,
                  want: [{ g: 'timber', per: 30 }, { g: 'resin', per: 200 }],
-                 d: 'Buys timber by the raft and resin to caulk the hulls. Must stand beside water.' },
+                 d: 'Buys timber and resin. Build next to water.' },
     stockade:  { n: 'Stockade',         kind: 'demand', cost: 800, adv: 'garrison',
                  want: [{ g: 'rice', per: 30 }, { g: 'dfish', per: 45 }, { g: 'tin', per: 150 }],
-                 d: 'A garrison that eats rice and dried fish and buys tin for shot.' },
+                 d: 'Buys rice, dried fish and tin ingots.' },
     caravan:   { n: 'Caravansary',      kind: 'depot', cost: 300, adv: 'cart',
-                 d: 'Stabling and a yard. Ox carts can only call at markets that have one.' },
+                 d: 'Lets ox carts stop at this market.' },
     harbour:   { n: 'Harbour',          kind: 'depot', cost: 250, adv: 'boat', water: 1,
-                 d: 'A jetty on the sea or the lower river. Boats can only call at markets that have one.' }
+                 d: 'Lets boats stop at this market. Build on the sea or the lower river.' }
   };
 
   /* spd = tiles per tick on a trail (land) or open water. */
   var TRANS = {
     porter: { n: 'Porters',   mode: 'land',  cls: 'foot',  cap: 4,  spd: 0.36, cost: 0,    keep: 0,
-              d: 'A file of porters. Four loads. They need no path at all, though a trail doubles their pace.' },
+              d: 'Capacity 4. Upkeep 0. Walks anywhere on land. Double speed on trails.' },
     eleph:  { n: 'Elephants', mode: 'land',  cls: 'eleph', cap: 8,  spd: 0.36, cost: 500,  keep: 24, adv: 'eleph',
-              d: 'Eight loads, and nearly as quick through forest and hill as on a trail.' },
+              d: 'Capacity 8. Upkeep 24 a year. Fast through forest and hills.' },
     cart:   { n: 'Ox carts',  mode: 'land',  cls: 'cart',  cap: 14, spd: 0.48, cost: 450,  keep: 14, adv: 'cart', depot: 'caravan',
-              d: 'Fourteen loads, but only on a made road, and only between markets with a caravansary.' },
+              d: 'Capacity 14. Upkeep 14 a year. Travels on roads between markets with a caravansary.' },
     sampan: { n: 'Sampan',    mode: 'water', cls: 'boat',  cap: 10, spd: 0.55, cost: 350,  keep: 10, adv: 'boat', depot: 'harbour',
-              d: 'Ten loads along the coast and up the lower rivers, between markets with a harbour.' },
+              d: 'Capacity 10. Upkeep 10 a year. Sails the coast and lower rivers between harbours.' },
     junk:   { n: 'Junk',      mode: 'water', cls: 'deep',  cap: 24, spd: 0.70, cost: 1500, keep: 36, adv: 'ship', depot: 'harbour',
-              d: 'Twenty-four loads by sea. Too deep for the rivers: it calls only at harbours on the coast.' }
+              d: 'Capacity 24. Upkeep 36 a year. Sails the sea between sea harbours.' }
   };
 
   var ADV = {
-    boat:     { n: 'Boatwrights',       y: 1400, cost: 500,  d: 'Build harbours and sail sampans: ten loads by sea and lower river.' },
-    eleph:    { n: 'Elephant handlers', y: 1403, cost: 600,  d: 'Merchants can travel with elephants: eight loads over rough ground.' },
-    cart:     { n: 'Cart roads',        y: 1406, cost: 900,  d: 'Lay made roads, build caravansaries, and run ox carts between them.' },
-    smelt:    { n: 'Tin smelting',      y: 1408, cost: 1000, d: 'Build smelters. Ingots are worth three times the ore, and the foreign ships will soon take nothing else.' },
-    bazaar:   { n: 'Bazaar charter',    y: 1410, cost: 1200, d: 'Enlarge a market into a bazaar with a wider reach.' },
-    curing:   { n: 'Fish curing',       y: 1413, cost: 800,  d: 'Build curing sheds. Households will soon pay well for dried fish and next to nothing for fresh.' },
-    gold:     { n: 'Goldsmiths',        y: 1418, cost: 1600, d: 'Build goldsmiths. The court at the Istana is about to start buying gold ornaments.' },
-    ship:     { n: 'Shipwrights',       y: 1424, cost: 2200, d: 'Sail junks, and build shipyards that buy timber and resin.' },
-    loom:     { n: 'Looms',             y: 1430, cost: 1400, d: 'Build weavers, which turn the new cotton into cloth.' },
-    mosque:   { n: 'Mosque builders',   y: 1433, cost: 1000, d: 'Build mosques, which buy resin, pottery and furniture.' },
-    batik:    { n: 'Batik',             y: 1440, cost: 2000, d: 'Build batik workshops. The court will pay handsomely for batik.' },
-    empor:    { n: 'Emporium charter',  y: 1455, cost: 3500, d: 'Enlarge a bazaar into an emporium, the widest reach of all.' },
-    garrison: { n: 'Stockades',         y: 1470, cost: 1500, d: 'Build stockades, whose garrisons buy rice, dried fish and tin.' }
+    boat:     { n: 'Boatbuilding',      y: 1400, cost: 500,  d: 'Unlocks harbours and sampans: capacity 10, sea and lower rivers.' },
+    eleph:    { n: 'Elephant handling', y: 1403, cost: 600,  d: 'Unlocks elephants: capacity 8, fast through forest and hills.' },
+    cart:     { n: 'Road building',     y: 1406, cost: 900,  d: 'Unlocks roads, caravansaries and ox carts: capacity 14.' },
+    smelt:    { n: 'Tin smelting',      y: 1408, cost: 1000, d: 'Unlocks tin smelters. Tin ingots sell for 3 times the price of tin ore. The foreign quarter switches to ingots in 1416.' },
+    bazaar:   { n: 'Bazaar charter',    y: 1410, cost: 1200, d: 'Unlocks the bazaar: market range 7.' },
+    curing:   { n: 'Fish curing',       y: 1413, cost: 800,  d: 'Unlocks fish-curing sheds. Households switch from fresh fish to dried fish in 1425.' },
+    gold:     { n: 'Goldsmithing',      y: 1418, cost: 1600, d: 'Unlocks goldsmiths. The Istana buys gold ornaments from 1420.' },
+    ship:     { n: 'Shipbuilding',      y: 1424, cost: 2200, d: 'Unlocks junks (capacity 24, sea) and shipyards, which buy timber and resin.' },
+    loom:     { n: 'Weaving',           y: 1430, cost: 1400, d: 'Unlocks weavers, which make cloth from cotton.' },
+    mosque:   { n: 'Mosque building',   y: 1433, cost: 1000, d: 'Unlocks mosques, which buy resin, pottery and furniture.' },
+    batik:    { n: 'Batik making',      y: 1440, cost: 2000, d: 'Unlocks batik workshops. The Istana buys batik from 1444.' },
+    empor:    { n: 'Emporium charter',  y: 1455, cost: 3500, d: 'Unlocks the emporium: market range 9.' },
+    garrison: { n: 'Fortification',     y: 1470, cost: 1500, d: 'Unlocks stockades, which buy rice, dried fish and tin ingots.' }
   };
 
   /* Things that happen whether or not anyone buys an advance. `warn` is announced `lead` years ahead. */
   var EVENTS = [
-    { y: 1416, flag: 'ingots', lead: 4, warn: 'Ship captains are asking for smelted tin. In four years the foreign quarter will take ingots and no ore.',
-      t: 'The foreign quarter has stopped buying ore. It buys tin ingots now.' },
-    { y: 1420, flag: 'ornaments', t: 'The court has a taste for gold. The Istana begins buying ornaments.' },
-    { y: 1425, flag: 'dried', lead: 5, warn: 'Dried fish is catching on. In five years households will pay next to nothing for fresh fish.',
-      t: 'Households now want their fish dried. They will eat fresh at a pinch, but nobody pays for it any more.' },
-    { y: 1428, flag: 'cotton', t: 'Gujarati settlers have planted cotton in the Tampin and Kesang valleys.' },
-    { y: 1444, flag: 'batikcourt', t: 'Batik is the fashion at court. The Istana begins buying it.' }
+    { y: 1416, flag: 'ingots', lead: 4, warn: 'Demand change in 4 years: the foreign quarter switches from tin ore to tin ingots.',
+      t: 'Demand changed: the foreign quarter now buys tin ingots. Its tin ore demand has ended.' },
+    { y: 1420, flag: 'ornaments', t: 'New demand: the Istana buys gold ornaments.' },
+    { y: 1425, flag: 'dried', lead: 5, warn: 'Demand change in 5 years: households switch from fresh fish to dried fish.',
+      t: 'Demand changed: households now buy dried fish. They eat fresh fish while dried fish is out of stock.' },
+    { y: 1428, flag: 'cotton', t: 'New resource: cotton fields at Tampin and Kesang.' },
+    { y: 1444, flag: 'batikcourt', t: 'New demand: the Istana buys batik.' }
   ];
 
   var PLACES = [
@@ -157,12 +157,12 @@
   var SPARE = ['Kampung Hulu', 'Kampung Hilir', 'Kampung Baru', 'Paya Rumput', 'Bukit Baru', 'Ayer Molek', 'Sungai Putat', 'Padang Temu', 'Kuala Sungai', 'Batu Berendam', 'Bukit Katil', 'Ayer Keroh'];
 
   var ABIL = {
-    trail:  { n: 'Trailwise',       d: 'A third faster on trails and open ground.' },
-    sell:   { n: 'Hard bargainer',  d: 'Pays no market dues when he sells.' },
-    buy:    { n: 'Shrewd buyer',    d: 'Pays no market dues when he buys.' },
-    load:   { n: 'Strong backs',    d: 'Carries a quarter more than the transporter usually holds.' },
-    thrift: { n: 'Thrifty',         d: 'Draws no wage.' },
-    sea:    { n: 'Born to the sea', d: 'A quarter faster by boat.' }
+    trail:  { n: 'Pathfinder',      d: '+33% speed on trails and open ground.' },
+    sell:   { n: 'Negotiator',      d: 'Market fee on sales: 0%.' },
+    buy:    { n: 'Haggler',         d: 'Market fee on purchases: 0%.' },
+    load:   { n: 'Strong',          d: '+25% capacity.' },
+    thrift: { n: 'Thrifty',         d: 'Wage: 0.' },
+    sea:    { n: 'Sailor',          d: '+25% speed by boat.' }
   };
   var NAMES = ['Ali', 'Daud', 'Lim Kee', 'Ravi', 'Ismail', 'Tan Beng', 'Yusof', 'Muthu', 'Hamzah', 'Ong Seng', 'Karim', 'Chew Hock', 'Salleh', 'Wira',
     'Idris', 'Koh Lian', 'Jaya', 'Musa', 'Chandran', 'Adi', 'Rahim', 'Goh Tiam', 'Surya', 'Latif', 'Bakar', 'Teo Huat', 'Arif', 'Zain', 'Gopal',
@@ -171,16 +171,16 @@
   var RANKS = [[0, 'Pedlar'], [10000, 'Stallholder'], [30000, 'Trader of the bazaar'], [75000, 'Saudagar'], [150000, 'Orang kaya'], [300000, 'Merchant prince']];
 
   var GOALS = [
-    { id: 'market', t: 'Found a market at the river mouth',              r: 0,   h: 'Open Build, choose Market, and place it so its reach covers the houses, the paddies and the foreign quarter.' },
-    { id: 'trip',   t: 'Have a merchant finish a round of his route',    r: 100, h: 'Found a second market where something Malacca wants is cheap: Naning, up the river, has pepper and rice. Lay a trail between them, hire a merchant and click the two markets. He works out what to carry.' },
-    { id: 'h10',    t: 'Grow a town to 10 houses',                       r: 150, h: 'Families come when rice and fish are always on the shelves, with at least two of salt, cloth and pottery. A potter makes pottery from clay; salt comes from the pans at Merlimau.' },
-    { id: 'adv',    t: 'Buy an advance',                                 r: 200, h: 'Open Advances. Boatwrights is on offer from the first day.' },
-    { id: 'works',  t: 'Build or buy a workshop',                        r: 200, h: 'A potter beside a clay pit turns clay into pottery, which every house wants.' },
-    { id: 'tin20',  t: 'Sell 20 loads of ore or ingots to the foreign ships', r: 400, h: 'The tin mines are in the hills at Sungai Ujong. The ships at Malacca buy all they can get.' },
-    { id: 'road',   t: 'Run an ox cart for a full round',                r: 400, h: 'Needs the Cart roads advance, a made road, and a caravansary at each stop.' },
+    { id: 'market', t: 'Build a market at the river mouth',              r: 0,   h: 'Open Build, select Market and place it. Cover the houses, the rice paddies and the foreign quarter with its range.' },
+    { id: 'trip',   t: 'Complete a trip on a trade route',               r: 100, h: 'Build a second market at Naning, up the river: it has pepper and rice. Connect the two markets with a trail, hire a merchant and select both markets as stops. Orders start on auto.' },
+    { id: 'h10',    t: 'Grow a town to 10 houses',                       r: 150, h: 'Towns grow while rice and fish are in stock, plus 2 of salt, cloth and pottery. A potter makes pottery from clay. Salt pans are at Merlimau.' },
+    { id: 'adv',    t: 'Research a technology',                          r: 200, h: 'Open Research. Boatbuilding is available from the start.' },
+    { id: 'works',  t: 'Build or buy a workshop',                        r: 200, h: 'A potter near a clay pit makes pottery. Every house buys pottery.' },
+    { id: 'tin20',  t: 'Sell 20 loads of tin ore or tin ingots at the foreign quarter', r: 400, h: 'Tin mines are in the hills at Sungai Ujong. The foreign quarter at Malacca is the buyer.' },
+    { id: 'road',   t: 'Complete a trip by ox cart',                     r: 400, h: 'Requires Road building research, a road, and a caravansary at each stop.' },
     { id: 'h40',    t: 'Grow a town to 40 houses',                       r: 800 },
-    { id: 'orn',    t: 'Deliver gold ornaments to the Istana',           r: 800, h: 'Gold dust comes from Ledang. A goldsmith works it once the court starts buying.' },
-    { id: 'c50',    t: 'Hold 50,000 coins',                              r: 0 },
+    { id: 'orn',    t: 'Deliver gold ornaments to the Istana',           r: 800, h: 'Gold fields are at Ledang. A goldsmith makes ornaments from gold dust. The Istana buys them from 1420.' },
+    { id: 'c50',    t: 'Reach 50,000 coins',                              r: 0 },
     { id: 'h100',   t: 'Grow a town to 100 houses',                      r: 2000 }
   ];
 
@@ -315,6 +315,6 @@
   CH.DEF = { W: W, H: H, T: T, goods: GOODS, goodIds: Object.keys(GOODS), sites: SITES, house: HOUSE, sizes: SIZES, bld: BLD, bldIds: Object.keys(BLD), trans: TRANS, adv: ADV,
     events: EVENTS, places: PLACES, spare: SPARE, abil: ABIL, names: NAMES, ranks: RANKS, goals: GOALS,
     title: 'Malacca', span: [1400, 1511], startCoins: 2500, tpy: 300,
-    path: { trail: { n: 'Trail', cost: 4, code: 1 }, road: { n: 'Made road', cost: 12, code: 2, adv: 'cart' } },
+    path: { trail: { n: 'Trail', cost: 4, code: 1 }, road: { n: 'Road', cost: 12, code: 2, adv: 'cart' } },
     hire: { base: 100, grow: 1.32, max: 6400, cap: 30, wage: 12 } };
 })(typeof window !== 'undefined' ? window : globalThis);
