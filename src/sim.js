@@ -441,6 +441,7 @@
      all, and he never draws a market's shelves below the stock that keeps its price at the usual. Where the player has written the orders he loads those goods and no others, up to the numbers given: only
      while they pay, unless the route says to follow orders to the letter. Either way he does not walk on with empty
      hands unless something worth carrying is waiting further on. */
+  function note(S, k, d) { var a = rt(S).les || (rt(S).les = []); if (a.length < 12) a.push({ k: k, d: d }); }   // a moment for the Lessons book, which reads and clears these
   function outlet(S, R, k, g) {          // the market where a good loaded at stop k comes off again
     for (var j = 1, n = R.stops.length; j < n; j++) { var q = R.stops[(k + j) % n]; if (q.un === 'all' ? !(q.ld[g] > 0) : q.un[g] > 0) return mkt(S, q.m); }
     return null;
@@ -482,13 +483,19 @@
         g = choose(S, R, m.si, mk, sd, bd, m.cargo, null); if (!g) break;
         buyOne(S, m, mk, g); m.got[g] = (m.got[g] || 0) + 1;
       }
+      var seen = S.les || {};                // did he stop for want of profit with room to spare, or for want of room with profit to spare?
+      if (why !== '$' && load(m) < cap && !seen.margin) {
+        for (g in m.got) if ((mk.stock[g] || 0) > Math.max(1, tOf(flows(S, mk), g))) { var ob = outlet(S, R, m.si, g); if (ob && ob !== mk) { note(S, 'margin', { ms: m.id, a: mk.id, b: ob.id, g: g, n: m.got[g], cap: cap }); break; } }
+      } else if (why !== '$' && load(m) >= cap && !seen.choice && (g = choose(S, R, m.si, mk, sd, bd, m.cargo, null))) {
+        note(S, 'choice', { ms: m.id, a: mk.id, g: g, v: margin(S, mk, outlet(S, R, m.si, g), g, sd, bd, m.cargo[g] || 0, null), cap: cap, took: JSON.parse(JSON.stringify(m.got)) });
+      }
     } else for (g in st.ld) {
       n = st.ld[g] - (m.got[g] || 0);
       var o = careful && n > 0 ? outlet(S, R, m.si, g) : null;
       while (n > 0 && load(m) < cap) {
         if ((mk.stock[g] || 0) < 1) { done = false; if (why !== '$') why = g; break; }
         if (S.coins < K.CREDIT) { done = false; why = '$'; break; }
-        if (careful && !(o && o !== mk && margin(S, mk, o, g, sd, bd, m.cargo[g] || 0, null) > K.EDGE)) { done = false; if (!why) { why = g; dear = 1; } break; }
+        if (careful && !(o && o !== mk && margin(S, mk, o, g, sd, bd, m.cargo[g] || 0, null) > K.EDGE)) { if (o && o !== mk && m.got[g] > 0) note(S, 'margin', { ms: m.id, a: mk.id, b: o.id, g: g, n: m.got[g], cap: cap }); done = false; if (!why) { why = g; dear = 1; } break; }
         buyOne(S, m, mk, g); m.got[g] = (m.got[g] || 0) + 1; n--;
       }
     }
@@ -673,6 +680,7 @@
     for (i = 0; i < S.ms.length; i++) tickMerchant(S, S.ms[i]);
     if (S.tick % TPY === 0) newYear(S);
     if (S.tick % 10 === 0) goals(S);
+    if (S.tick % 20 === 0 && CH.learn) CH.learn.scan(S);          // the Lessons book looks over the game for anything worth a lesson
   };
 
   /* ---------- advances ---------- */
@@ -752,5 +760,5 @@
   CH.rank = function (c) { var r = D.ranks[0][1]; D.ranks.forEach(function (q) { if (c >= q[0]) r = q[1]; }); return r; };
   CH.year = year; CH.price = price; CH.cover = cover; CH.hireCost = hireCost; CH.capFor = capFor; CH.load = load; CH.where = where; CH.flows = flows; CH.tOf = tOf;
   CH.depot = depot; CH.routeOf = routeOf; CH.mkt = mkt; CH.ter = ter; CH.rt = rt; CH.way = way; CH.stopTile = stopTile; CH.layCost = layCost; CH.live = live; CH.disc = disc;
-  CH.sellP = sellP; CH.buyP = buyP; CH.I = I;
+  CH.sellP = sellP; CH.buyP = buyP; CH.I = I; CH.mult = mult; CH.outlet = outlet;
 })(typeof window !== 'undefined' ? window : globalThis);

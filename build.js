@@ -11,7 +11,7 @@
 const fs = require('fs'), path = require('path');
 const at = f => path.join(__dirname, f);
 const src = f => fs.readFileSync(at('src/' + f), 'utf8');
-const js = ['world.js', 'sim.js', 'draw.js', 'ui.js'].map(src).join('\n');
+const js = ['world.js', 'sim.js', 'learn.js', 'draw.js', 'ui.js'].map(src).join('\n');
 if (/<\/script/i.test(js)) throw new Error('script would be cut short by a closing tag inside the code');
 const css = src('style.css');
 const fontsLink = '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +

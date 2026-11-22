@@ -2,6 +2,7 @@
 const path = require('path');
 require(path.join(__dirname, '../src/world.js'));
 require(path.join(__dirname, '../src/sim.js'));
+require(path.join(__dirname, '../src/learn.js'));
 const CH = globalThis.CH, D = CH.DEF, WD = CH.genWorld(), W = D.W, H = D.H;
 const I = (x, y) => y * W + x;
 function place(name) { return D.places.find(p => p.n === name); }

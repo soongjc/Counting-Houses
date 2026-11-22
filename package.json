@@ -5,7 +5,7 @@
   "description": "A build-and-trade game on the Malacca coast, 1400 to 1511. One HTML page, no server.",
   "scripts": {
     "build": "node build.js",
-    "test": "node test/first.js && node test/monkey.js 1 40 && node test/bot.js 40 -q"
+    "test": "node test/first.js && node test/monkey.js 1 40 && node test/bot.js 40 -q && node test/learn.js 40"
   },
   "devDependencies": {
     "@fontsource/alegreya": "^5.3.0",

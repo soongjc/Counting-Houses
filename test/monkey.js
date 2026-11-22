@@ -1,6 +1,7 @@
 // Throw random legal and illegal actions at the engine for decades, saving and reloading on the way.
 // Fails loudly on an exception, a NaN, a negative stock or a merchant off the map.
 const { CH, D, WD, I } = require('./kit');
+CH.learn.strict = true;                               // a fault in the Lessons book stops the run instead of being swallowed
 let seed = +process.argv[2] || 1; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 const pick = a => a[Math.floor(rnd() * a.length)];
 let S = CH.newGame({ seed: 99 + seed }); S.coins = 30000;
@@ -29,10 +30,12 @@ const acts = [
   () => { S.coins += 4000; }
 ];
 const YEARS = +process.argv[3] || 70;
+const draw = () => { const L = CH.learn; S.mk.forEach(m => D.goodIds.forEach(g => L.priceCard(S, m, g, Math.round(rnd() * 30 - 15)))); S.rt.forEach(R => R.stops.forEach((st, k) => { const m = S.ms.find(q => q.rt === R.id) || null; D.goodIds.forEach(g => L.legCard(S, R, k, g, m)); L.bestLeg(S, R, k, m); })); L.list.forEach(x => L.book(S, x.id)); S.bl.forEach(b => { if (D.bld[b.t].kind === 'works' && b.mk) { L.valueCard(S, D.bld[b.t], CH.mkt(S, b.mk)); L.payback(S, b); } }); };
 for (let t = 0; t < YEARS * D.tpy; t++) {
   if (rnd() < 0.05) pick(acts)();
   CH.tick(S);
   if (t % 97 === 0) { check('tick ' + t); S.mk.forEach(m => CH.view.market(S, m)); S.rt.forEach(R => CH.view.route(S, R, S.ms[0])); }
+  if (t % 997 === 0) draw();
   if (t % 2500 === 1200) { const txt = CH.serialize(S); S = CH.revive(JSON.parse(txt)); CH.tick(S); check('after reload ' + t); }
 }
 console.log('seed', seed, 'ok:', CH.year(S), 'markets', S.mk.length, 'merchants', S.ms.length, 'houses', S.hs.length, 'paths', Object.keys(S.path).length, 'save', (CH.serialize(S).length / 1024).toFixed(0) + 'KB');

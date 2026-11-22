@@ -9,6 +9,9 @@ good is cheap and sell where it is dear. The books close in 1511, and your rank 
 Open `index.html` in a browser. That one file is the whole game: no server, no install, no build step.
 
 - The game saves itself in the browser's local storage, so it stays on the device and browser you play on.
+- It teaches the economics it runs on. Tap a good in a market for its supply and demand curve, or a good on a
+  route for what each load clears. Thirteen lessons (surplus, arbitrage, opportunity cost and so on) unlock as
+  they happen in your own game.
 - The only thing it asks the network for is two typefaces from Google Fonts. Without them it falls back to
   the system's fonts and plays the same.
 
@@ -27,6 +30,7 @@ assembles `index.html` from `src/`. It needs Node and nothing else.
 | --- | --- |
 | `src/world.js` | The setting, as data: goods, sites, buildings, transport, advances, events, and the map generator. Another setting is another world file. |
 | `src/sim.js` | The engine: prices, towns, workshops, pathfinding, merchants. It has no DOM in it and runs in Node. |
+| `src/learn.js` | The teaching: supply and demand charts, trade charts, and the lessons with the rules that unlock them. No DOM; runs in Node. |
 | `src/draw.js` | The map: painted ground, pictures drawn in code, tags, hit-testing. |
 | `src/ui.js` | Panels, dialogs, input, saving. |
 | `src/style.css`, `src/index.template.html` | The look and the page skeleton. |
@@ -40,6 +44,7 @@ npm test                      # the three below, shortened
 node test/first.js            # the first steps of a game
 node test/monkey.js 1 70      # random actions for 70 game years, with a save and reload (seed, years)
 node test/bot.js 111 -q       # a scripted player through the whole game
+node test/learn.js 60 -v      # every lesson and chart, checked against a scripted game (-v prints the lessons)
 ```
 
 `test/bot.js` takes `--auto` to leave every merchant to his own judgment and `--strict` to have written
@@ -53,7 +58,7 @@ npm install
 npm install --no-save playwright
 npx playwright install chromium
 node build.js
-node tools/shot.js play       # also: basic, info, mobile, mobile2, modals, soak, over, room, look
+node tools/shot.js play       # also: basic, info, learn, mobile, mobile2, mobile3, modals, soak, over, room, look
 node tools/csp.js             # the page under a strict content security policy, in a sandboxed frame
 node tools/badsave.js         # damaged saves and blocked storage
 ```

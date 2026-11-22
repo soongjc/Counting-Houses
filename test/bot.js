@@ -71,3 +71,5 @@ console.log('towns:'); S.mk.forEach(m => console.log('  ', town(S, m)));
 console.log('merchants:'); S.ms.forEach(m => { const r = CH.routeOf(S, m.rt); console.log('  ', m.nm.padEnd(9), m.tr.padEnd(6), m.ab.padEnd(6), 'trips', String(m.trips).padStart(3), 'life', String(Math.round(m.pr)).padStart(6), m.st, m.why, r ? r.stops.map(s => CH.mkt(S, s.m).name.slice(0, 3) + ':' + Object.entries(s.ld).map(e => e[0].slice(0, 3) + e[1]).join(',')).join(' > ') : ''); });
 console.log('works:'); S.bl.filter(b => D.bld[b.t].kind === 'works').forEach(b => console.log('  ', b.t.padEnd(9), b.own ? 'own' : 'loc', b.st, b.why, 'made', b.n, 'profit last yr', Math.round(b.pr[1])));
 console.log('goals', Object.keys(S.goals).join(' '), '| cnt', JSON.stringify(S.cnt), '| rank', CH.rank(S.coins));
+
+module.exports = { S };

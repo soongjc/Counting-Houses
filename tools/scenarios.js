@@ -281,3 +281,51 @@ module.exports.mobile2 = async (page, shot) => {
   await page.tap('#lens [data-g=rice]'); await center(page, 30, 24, 0.5); await wait(page, 500); await shot('5-rice-everywhere');
   console.log('phone: lens caption', JSON.stringify(await page.textContent('#lenscap')));
 };
+
+// the teaching: a good's supply and demand at a market, a trade tried on it, the chart of a route's trade, and the book
+module.exports.learn = async (page, shot) => {
+  await page.click('text=Begin'); await wait(page, 300);
+  const info = await page.evaluate(setup);
+  await page.evaluate(() => { const S = CH.ui.state(); S.rt.forEach(r => r.stops.forEach(q => { q.auto = 1; q.ld = {}; q.un = 'all'; })); for (let i = 0; i < 1500; i++) CH.tick(S); });
+  console.log('lessons seen:', await page.evaluate(() => Object.keys(CH.ui.state().les || {}).join(' ')), '| badge:', await page.evaluate(() => (document.querySelector('#menu .badge:last-of-type') || {}).textContent));
+  await page.evaluate(() => { CH.ui.ui.sel = { k: 'mkt', id: 1 }; CH.ui.ui.chart = null; }); await wait(page, 400);
+  const goods = await page.$$eval('#inspect [data-act=chart]', b => b.map(q => q.dataset.g));
+  console.log('goods listed at the first market:', goods.join(','));
+  await page.click('#inspect [data-act=chart][data-g=fish]'); await wait(page, 400);
+  await page.evaluate(() => { document.getElementById('inspect').scrollTop = 260; }); await wait(page, 300); await shot('1-curve');
+  for (let i = 0; i < 4; i++) { await page.click('#inspect [data-act=whatif][data-d="1"]'); await wait(page, 120); }
+  await wait(page, 300); await shot('2-sell-four'); console.log('sell 4:', await page.textContent('#inspect .kline.gold'));
+  for (let i = 0; i < 7; i++) { await page.click('#inspect [data-act=whatif][data-d="-1"]'); await wait(page, 120); }
+  await wait(page, 300); await shot('3-buy-three'); console.log('buy 3:', await page.textContent('#inspect .kline.gold'));
+  await page.click('#inspect [data-act=chart][data-g=rice]'); await wait(page, 400); await shot('4-rice');
+  await page.evaluate(info => { CH.ui.ui.sel = { k: 'm', id: info.ms[0] }; }, info); await wait(page, 500);
+  const legs = await page.$$eval('#inspect [data-act=leg]', b => b.map(q => q.dataset.k + ':' + q.dataset.g));
+  console.log('goods to tap on his route:', legs.join(' '));
+  if (legs.length) { await page.click('#inspect [data-act=leg]'); await wait(page, 400); await page.evaluate(() => { const c = document.querySelector('#inspect .kcard'); if (c) c.scrollIntoView({ block: 'center' }); }); await wait(page, 300); await shot('5-leg'); console.log('leg:', (await page.textContent('#inspect .kcard .kline')).slice(0, 220)); }
+  await page.evaluate(info => { CH.ui.ui.sel = { k: 'bld', id: info.bl.find(q => q[1] === 'smelter')[0] }; }, info); await wait(page, 400); await shot('6-workshop');
+  await page.evaluate(() => { CH.ui.ui.sel = null; }); await wait(page, 400); await shot('7-notices');
+  await page.click('#menu [data-name=lessons]'); await wait(page, 500); await shot('8-book');
+  const ids = await page.$$eval('#modal .book li.seen [data-act=lesson]', b => b.map(q => q.dataset.id));
+  for (const id of ids) { await page.click(`#modal [data-act=lesson][data-id=${id}]`); await wait(page, 250); if (['glut', 'depth', 'arb', 'margin', 'value', 'road', 'shift'].includes(id)) await shot('9-lesson-' + id); }
+  console.log('opened', ids.length, 'lessons:', ids.join(' '), '| unread now', await page.evaluate(() => CH.learn.unread(CH.ui.state())));
+  await page.click('#modal .x'); await wait(page, 200);
+};
+
+// the teaching on a phone: a good's curve in a market's panel, a route's trade, the book
+module.exports.mobile3 = async (page, shot) => {
+  await page.tap('text=Begin'); await wait(page, 300);
+  const info = await page.evaluate(setup);
+  await page.evaluate(() => { const S = CH.ui.state(); S.rt.forEach(r => r.stops.forEach(q => { q.auto = 1; q.ld = {}; q.un = 'all'; })); for (let i = 0; i < 1500; i++) CH.tick(S); CH.ui.ui.sel = { k: 'mkt', id: 1 }; CH.ui.ui.tab = 'sel'; });
+  await wait(page, 500); await shot('1-top');
+  await page.tap('#inspect [data-act=chart][data-g=fish]'); await wait(page, 400);
+  await page.evaluate(() => { const c = document.querySelector('#inspect .kcard'); c.scrollIntoView({ block: 'start' }); }); await wait(page, 300); await shot('2-curve');
+  await page.tap('#inspect [data-act=whatif][data-d="1"]'); await page.tap('#inspect [data-act=whatif][data-d="1"]'); await wait(page, 300); await shot('3-sell-two');
+  await page.evaluate(info => { CH.ui.ui.sel = { k: 'm', id: info.ms[0] }; }, info); await wait(page, 500);
+  await page.tap('#inspect [data-act=leg]'); await wait(page, 400);
+  await page.evaluate(() => { const c = document.querySelector('#inspect .kcard'); c.scrollIntoView({ block: 'start' }); }); await wait(page, 300); await shot('4-leg');
+  await page.tap('#menu [data-name=lessons]'); await wait(page, 500); await shot('5-book');
+  await page.tap('#modal [data-act=lesson][data-id=glut]'); await wait(page, 400); await shot('6-lesson');
+  const fits = await page.evaluate(() => { const d = document.querySelector('#modal .dialog'); return { dialog: d.scrollWidth <= d.clientWidth + 1, page: document.documentElement.scrollWidth <= window.innerWidth + 1 }; });
+  console.log('phone: nothing wider than the screen', JSON.stringify(fits));
+  await page.tap('#modal .x'); await wait(page, 200);
+};
