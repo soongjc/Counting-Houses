@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Counting House</title>
+<!--FONTS-->
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand"><i></i><span>Counting House</span></div>
+    <div class="stat" id="date"></div>
+    <div class="stat" id="coins"></div>
+    <div class="stat" id="pop"></div>
+    <div id="speed" role="group" aria-label="Game speed"></div>
+    <nav id="menu" aria-label="Books"></nav>
+  </header>
+  <div id="band" aria-hidden="true"></div>
+  <main id="stage" data-tab="house">
+    <aside id="left" aria-label="Build and merchants"><section id="build" class="sec-build"></section><section id="roster" class="sec-roster"></section></aside>
+    <section id="mapwrap" aria-label="Map">
+      <canvas id="map"></canvas>
+      <div id="hud"><div id="lens" role="group" aria-label="Goods: pick one to show it on the map"></div><div id="lenscap" hidden></div><div id="banner" hidden></div></div>
+      <div id="corner">
+        <canvas id="mini" aria-label="Small map"></canvas>
+        <div id="zoom" role="group" aria-label="Map"></div>
+      </div>
+      <div id="tip" hidden></div>
+      <div id="toast" role="status" hidden></div>
+    </section>
+    <nav id="tabs" aria-label="Panels"></nav>
+    <aside id="inspect" aria-label="Details"></aside>
+  </main>
+</div>
+<div id="modal" hidden></div>
+<script>
+/*JS*/
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "counting-house",
+  "version": "0.3.0",
+  "private": true,
+  "description": "A build-and-trade game on the Malacca coast, 1400 to 1511. One HTML page, no server.",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node test/first.js && node test/monkey.js 1 40 && node test/bot.js 40 -q"
+  },
+  "devDependencies": {
+    "@fontsource/alegreya": "^5.3.0",
+    "@fontsource/alegreya-sans": "^5.3.0"
+  }
+}
