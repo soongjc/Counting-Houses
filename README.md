@@ -7,7 +7,16 @@ and roads, and run merchants between markets: buy low, sell high. The game ends 
 
 Open `index.html` in a browser. That one file is the whole game: no server, no install, no build step.
 
-- The game saves itself in the browser's local storage, so it stays on the device and browser you play on.
+- The title screen has Continue, New game, Load game, Records, How to play and Settings. A new game takes a
+  company name and a difficulty: Easy, Normal or Hard set the starting coins, the market fee and the goal rewards.
+- The game autosaves in the browser's local storage. Save game keeps up to ten more saves. Export moves a
+  game to another device or browser as a file or as a code; Load game, Import reads it back.
+- Records lists finished games, best first.
+- Sound follows the map view: a market crowd where houses are, waves along the coast, birds over forest, and
+  oxen, carts, roosters, gulls, hammers, axes and saws from whatever is in sight. Trades ring coins, a stop that
+  earns twice the usual rings a cash register, and goals, lessons and town milestones have their own sounds.
+  Settings has volume for ambience and effects; M turns sound on or off. Every sound is a recording under an open
+  licence, embedded in the page; Credits on the title screen names them.
 - Every market shows demand against supply for each good, with stock and price. Tap a good in a market for
   its price chart, or a good on a route for its profit chart. Thirteen lessons (surplus, arbitrage,
   opportunity cost and more) unlock as they happen in your game.
@@ -30,24 +39,43 @@ assembles `index.html` from `src/`. It needs Node and nothing else.
 | `src/world.js` | The setting, as data: goods, sites, buildings, transport, research, events, and the map generator. Another setting is another world file. |
 | `src/sim.js` | The engine: prices, towns, workshops, pathfinding, merchants. It has no DOM in it and runs in Node. |
 | `src/learn.js` | The teaching: supply and demand charts, trade charts, and the lessons with the rules that unlock them. No DOM; runs in Node. |
+| `src/sound.js` | Sound: decodes the embedded recordings, plays effects when things happen and mixes the ambience from what the view shows. |
+| `assets/sounds/` | The recordings as small mono MP3s, `sounds.json` (the list the build embeds) and `CREDITS.md` (every recording, its author and licence). |
 | `src/draw.js` | The map: painted ground, pictures drawn in code, tags, hit-testing. |
-| `src/ui.js` | Panels, dialogs, input, saving. |
+| `src/ui.js` | Title screen, panels, dialogs, input, saves, records, settings. |
 | `src/style.css`, `src/index.template.html` | The look and the page skeleton. |
+
+### Sounds
+
+`assets/sounds/` holds the finished recordings and the build embeds them. `tools/sounds/recipe.js` names each source
+recording (download address, author, licence) and each cut (start, length, fades, level).
+
+```
+node tools/sounds/make.js --fetch     # download the source recordings and cut every sound
+node tools/sounds/make.js coin moo    # recut only these
+node tools/sounds/listen.js all.mp3   # every sound in one file, to listen through
+node build.js
+```
+
+To change a sound, edit its entry in the recipe: another cut, another `level`, or another recording. Use recordings
+under CC0 or CC BY; `make.js` writes `CREDITS.md` and the game's Credits screen from the recipe. It needs ffmpeg.
 
 ## Test it
 
 The engine tests run in Node:
 
 ```
-npm test                      # the three below, shortened
+npm test                      # all of the below, shortened
 node test/first.js            # the first steps of a game
+node test/shell.js            # difficulty, saves from older versions, the save round trip, the sound event queue
+node test/sound.js            # the recordings: every sound the game asks for has its files, sources, licences and credits
 node test/monkey.js 1 70      # random actions for 70 game years, with a save and reload (seed, years)
 node test/bot.js 111 -q       # a scripted player through the whole game
 node test/learn.js 60 -v      # every lesson and chart, checked against a scripted game (-v prints the lessons)
 ```
 
 `test/bot.js` takes `--auto` to set every stop to auto orders and `--strict` to run manual orders in
-exact-amounts mode.
+exact-amounts mode. `test/bot.js` and `test/monkey.js` read `DIFF=easy` or `DIFF=hard` from the environment.
 
 The browser checks drive the built page in headless Chrome by real clicks and taps, and save screenshots
 to `shots/`. They need the font files and Playwright:
@@ -58,6 +86,9 @@ npm install --no-save playwright
 npx playwright install chromium
 node build.js
 node tools/shot.js play       # also: basic, info, learn, market, small, mobile, mobile2, mobile3, mobile4, modals, soak, over, room, look
+node tools/shot.js shell      # the title screen, new game, saves, export and import, records (mobile5: the same on a phone)
+node tools/shot.js sound      # the sound engine: it starts on a click, decodes its recordings, and the ambience follows the view
+node tools/shot.js sweep      # every panel and dialog read as text into shots/sweep.txt
 node tools/csp.js             # the page under a strict content security policy, in a sandboxed frame
 node tools/badsave.js         # damaged saves and blocked storage
 ```

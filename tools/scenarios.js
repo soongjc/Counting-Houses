@@ -203,7 +203,7 @@ module.exports.regrow = async (page, shot) => {
   });
   console.log(JSON.stringify(r));
   await center(page, 34, 29, 0.8); await wait(page, 700); await shot('1-trail-through-forest');
-  await page.click('#menu [data-name=help]'); await page.click('#modal [data-act=asknew]'); await page.click('#modal [data-act=newgame]'); await wait(page, 500);
+  await page.evaluate(() => { CH.ui.begin(); CH.ui.act.modal({ name: 'help' }); }); await wait(page, 500);
   await page.click('#modal .mfoot [data-act=close]'); await center(page, 34, 29, 0.8); await wait(page, 600); await shot('2-new-game');
   console.log(JSON.stringify(await page.evaluate(() => { const S = CH.ui.state(); return { markets: S.mk.length, cleared: Object.keys(S.clear).length, coins: S.coins }; })));
 };
@@ -373,9 +373,97 @@ module.exports.sweep = async (page, shot) => {
     for (const id of S.bl) { await sel({ k: 'bld', id }); await wait(page, 90); await read('building'); }
     for (const i of S.st) { await sel({ k: 'site', i }); await wait(page, 70); await read('site'); }
     await sel({ k: 'hq' }); await wait(page, 100); await read('hq'); await sel(null);
-    for (const name of ['help', 'hire', 'adv', 'prices', 'ledger', 'lessons']) { await page.click(`#menu [data-name=${name}], #roster [data-name=${name}]`); await wait(page, 200); await read('dialog ' + name); if (name === 'lessons') { const ids = await page.$$eval('#modal .book li.seen [data-act=lesson]', b => b.map(q => q.dataset.id)); for (const id of ids) { await page.click(`#modal [data-act=lesson][data-id=${id}]`); await wait(page, 120); await read('lesson ' + id); } } await page.click('#modal .x'); await wait(page, 120); }
+    for (const name of ['help', 'hire', 'adv', 'prices', 'ledger', 'lessons', 'menu', 'save', 'load', 'records', 'settings', 'credits', 'newgame']) { await page.evaluate(name => CH.ui.act.modal({ name }), name); await wait(page, 200); await read('dialog ' + name); if (name === 'lessons') { const ids = await page.$$eval('#modal .book li.seen [data-act=lesson]', b => b.map(q => q.dataset.id)); for (const id of ids) { await page.click(`#modal [data-act=lesson][data-id=${id}]`); await wait(page, 120); await read('lesson ' + id); } } await page.click('#modal .x'); await wait(page, 120); }
     for (const t of [['market', 1], ['path', 'trail'], ['bld', 'potter'], ['bld', 'balai'], ['bld', 'harbour']]) { const ok = await page.evaluate(t => { const b = document.querySelector(`#build [data-act=tool][data-k=${t[0]}][data-t="${t[1]}"]`); if (b) b.click(); return !!b; }, t); if (ok) { await wait(page, 120); await read('tool'); await page.keyboard.press('Escape'); } }
   }
   console.log(bad.length ? 'VALUES THAT FAILED TO PRINT:\n  ' + bad.slice(0, 20).join('\n  ') : 'every value printed');
   console.log('distinct lines: ' + seen.size); require('fs').writeFileSync(require('path').join(__dirname, '../shots/sweep.txt'), Array.from(seen).sort().join('\n'));
+};
+
+// the game shell, from a first visit: title, new game, save, overwrite, export, main menu, load, import, delete, records, and a second visit. `shell` on a desktop, `mobile5` on a phone
+module.exports.shell = module.exports.mobile5 = async (page, shot) => {
+  const ui = fn => page.evaluate(fn), say = (l, v) => console.log(l.padEnd(34), typeof v === 'string' ? v : JSON.stringify(v));
+  const title = () => ui(() => ({ screen: CH.ui.ui.screen, menu: [].map.call(document.querySelectorAll('#title .tbtn'), b => b.innerText.replace(/\n/g, ' / ')), chrome: getComputedStyle(document.getElementById('top')).display }));
+  const msg = () => ui(() => { const n = document.querySelector('#modal .note'); return n ? n.textContent : ''; });
+  await wait(page, 300); say('first visit', await title()); await shot('1-title');
+  await page.click('#title [data-name=newgame]'); await wait(page, 250); await shot('2-new-game');
+  await page.fill('#modal input[data-ch=coname]', 'Tin & Pepper Co'); await page.click('#modal [data-act=setdiff][data-v=hard]'); await wait(page, 150);
+  say('setup keeps the name', await ui(() => ({ name: document.querySelector('#modal input[data-ch=coname]').value, hard: document.querySelector('#modal [data-v=hard]').getAttribute('aria-checked') })));
+  await page.click('#modal [data-act=startnew]'); await wait(page, 400);
+  say('new game', await ui(() => { const S = CH.ui.state(); return { screen: CH.ui.ui.screen, modal: CH.ui.ui.modal, name: S.name, diff: S.diff, coins: S.coins, fee: S.fee, panel: document.querySelector('#inspect h2') && document.querySelector('#inspect h2').textContent }; }));
+  await shot('3-first-game-help'); await page.click('#modal .mfoot [data-act=close]'); await wait(page, 300);
+  await ui(() => { const S = CH.ui.state(); S.coins = 6000; CH.act.market(S, 23, 27, 1); for (let i = 0; i < 400; i++) CH.tick(S); }); await wait(page, 400);
+  await page.keyboard.press('Escape'); await wait(page, 250); say('Esc opens the menu', await ui(() => CH.ui.ui.modal)); await shot('4-menu');
+  await page.click('#modal [data-name=save]'); await wait(page, 200); await page.click('#modal [data-act=saveslot]'); await wait(page, 250);
+  say('saved', { msg: await msg(), slots: await ui(() => CH.ui.slots().map(q => q.s.name + ' ' + q.s.year + ' ' + q.s.coins)) }); await shot('5-save');
+  await ui(() => { const S = CH.ui.state(); for (let i = 0; i < 600; i++) CH.tick(S); });
+  await page.click('#modal .saves [data-act=saveslot]'); await wait(page, 200); say('overwrite asks first', await ui(() => CH.ui.ui.modal + ': ' + document.querySelector('#modal h2').textContent));
+  await page.click('#modal .mfoot [data-act=close]'); await wait(page, 200); say('Cancel returns to the save list', await ui(() => CH.ui.ui.modal + ', year in the save ' + CH.ui.slots()[0].s.year));
+  await page.click('#modal .saves [data-act=saveslot]'); await page.click('#modal [data-act=saveslot2]'); await wait(page, 250);
+  say('overwritten', { msg: await msg(), slots: await ui(() => CH.ui.slots().map(q => q.s.year)) });
+  const dl = page.waitForEvent('download', { timeout: 4000 }).catch(() => null); await page.click('#modal [data-act=exportfile]'); const d = await dl; await wait(page, 200);
+  say('export', { file: d ? d.suggestedFilename() : 'no download', msg: await msg() });
+  const code = await ui(() => CH.serialize(CH.ui.state())); say('save code length', code.length);
+  await page.click('#modal .mfoot [data-act=close]'); await wait(page, 200);
+  await page.click('#menu [data-name=menu]'); await page.click('#modal [data-act=tomenu]'); await wait(page, 400);
+  say('main menu', await title()); await shot('6-title-with-continue');
+  await page.click('#title [data-name=load]'); await wait(page, 250); await shot('7-load');
+  say('load list', await ui(() => [].map.call(document.querySelectorAll('#modal .saves li'), li => li.querySelector('.sv').innerText.replace(/\n/g, ' / '))));
+  await page.fill('#modal textarea.code', '{"v":3,"nonsense":true}'); await page.click('#modal [data-act=importcode]'); await wait(page, 250); say('a bad code is refused', await msg());
+  await ui(() => { const S = CH.ui.state(); S.coins = 1; }); await page.fill('#modal textarea.code', code); await page.click('#modal [data-act=importcode]'); await wait(page, 400);
+  say('a good code loads', await ui(() => ({ screen: CH.ui.ui.screen, modal: CH.ui.ui.modal, coins: Math.round(CH.ui.state().coins), name: CH.ui.state().name, toast: document.getElementById('toast').textContent })));
+  await page.click('#menu [data-name=menu]'); await page.click('#modal [data-name=load]'); await wait(page, 200);
+  await page.click('#modal .saves [data-act=loadslot][data-id^=s]'); await wait(page, 200); say('loading over a game asks first', await ui(() => document.querySelector('#modal h2').textContent + ' | ' + document.querySelector('#modal .body p').textContent));
+  await page.click('#modal [data-act=loadslot2]'); await wait(page, 400); say('slot loaded', await ui(() => ({ screen: CH.ui.ui.screen, modal: CH.ui.ui.modal, year: CH.year(CH.ui.state()) })));
+  await page.click('#menu [data-name=menu]'); await page.click('#modal [data-name=save]'); await page.click('#modal [data-act=delslot]'); await wait(page, 200); await page.click('#modal [data-act=delslot2]'); await wait(page, 250);
+  say('deleted', { msg: await msg(), slots: await ui(() => CH.ui.slots().length), keys: await ui(() => Object.keys(localStorage).filter(k => k.indexOf('countinghouse') === 0).sort()) });
+  await page.click('#modal .mfoot [data-act=close]'); await wait(page, 200);
+  // a finished game goes on the records list, once
+  await ui(() => { const S = CH.ui.state(), D = CH.DEF; S.tick = (D.span[1] - D.span[0]) * D.tpy - 20; }); await page.click('#speed [data-v="8"]'); await wait(page, 2500);
+  say('game over', await ui(() => ({ modal: CH.ui.ui.modal, over: CH.ui.state().over, records: CH.ui.records().map(r => r.name + ' ' + r.diff + ' ' + r.coins + ' ' + r.rank + ' hist ' + r.hist.length) }))); await shot('8-game-over');
+  await page.click('#modal [data-name=records]'); await wait(page, 250); await shot('9-records');
+  say('records table', await ui(() => [].map.call(document.querySelectorAll('#modal tbody tr'), r => r.innerText.replace(/\s+/g, ' '))));
+  await page.click('#modal .mfoot [data-act=close]'); await wait(page, 200); await ui(() => { const S = CH.ui.state(); for (let i = 0; i < 700; i++) CH.tick(S); }); await wait(page, 600);
+  say('still one record after playing on', await ui(() => CH.ui.records().length));
+  // settings open from the menu; a second visit meets the title with Continue
+  await page.click('#menu [data-name=menu]'); await page.click('#modal [data-name=settings]'); await wait(page, 250); await shot('10-settings'); await page.click('#modal .mfoot [data-act=close]');
+  const fit = await ui(() => ({ page: document.documentElement.scrollWidth <= innerWidth }));
+  await page.reload(); await wait(page, 900); say('second visit', await title()); await shot('11-second-visit');
+  await page.click('#title [data-name=newgame]'); await wait(page, 250); say('setup remembers', await ui(() => ({ name: document.querySelector('#modal input[data-ch=coname]').value, hard: document.querySelector('#modal [data-v=hard]').getAttribute('aria-checked'), warns: !!document.querySelector('#modal .hint') })));
+  await page.keyboard.press('Escape'); await wait(page, 200); await page.click('#title [data-act=continue]'); await wait(page, 400);
+  say('continue', await ui(() => ({ screen: CH.ui.ui.screen, name: CH.ui.state().name, year: CH.year(CH.ui.state()), chrome: getComputedStyle(document.getElementById('top')).display })));
+  say('nothing wider than the screen', fit);
+};
+
+// the sound engine in a real browser: it wakes on a click, makes its sounds, mixes the ambience from the view, and plays the game's events
+module.exports.sound = async (page, shot) => {
+  const ui = fn => page.evaluate(fn), say = (l, v) => console.log(l.padEnd(34), typeof v === 'string' ? v : JSON.stringify(v));
+  say('before any click', await ui(() => CH.sound.state().ctx));
+  await page.click('#modal .mfoot [data-act=close]');
+  for (let i = 0; i < 60; i++) { await wait(page, 250); const s = await ui(() => CH.sound.state()); if (s.of && s.made === s.of) break; }
+  say('after a click', await ui(() => { const s = CH.sound.state(); return { ctx: s.ctx, decoded: s.made + '/' + s.of, failed: s.failed }; }));
+  say('loop lengths after the crossfade', await ui(() => CH.sound.names.filter(CH.sound.isLoop).map(id => id + ' ' + CH.sound.seconds(id)[0] + 's').join(', ')));
+  say('loop seams (wrap step / usual step)', await ui(() => CH.sound.names.filter(CH.sound.isLoop).map(id => id + ' ' + CH.sound.seam(id)).join(', ')));
+  say('takes decoded per sound', await ui(() => CH.sound.names.every(id => CH.sound.seconds(id).length === CH.sound.versions(id)) ? 'all' : 'MISSING: ' + CH.sound.names.filter(id => CH.sound.seconds(id).length !== CH.sound.versions(id)).join(' ')));
+  const info = await page.evaluate(setup);
+  await ui(() => { const S = CH.ui.state(); S.rt.forEach(r => r.stops.forEach(q => { q.auto = 1; q.ld = {}; q.un = 'all'; })); for (let i = 0; i < 900; i++) CH.tick(S); CH.rt(S).snd.length = 0; });
+  const beds = async (x, y, z) => { await center(page, x, y, z); await wait(page, 2600); return ui(() => CH.sound.state().loops.join(' ')); };
+  const mal = { x: info.mk[0][1], y: info.mk[0][2] }, town = await beds(mal.x, mal.y, 1.25); say('zoomed in on Malacca', town);
+  let peak = 0; for (let i = 0; i < 12; i++) { await wait(page, 120); peak = Math.max(peak, await ui(() => CH.sound.level())); } say('output level at Malacca', peak.toFixed(4));
+  say('far out at sea', await beds(4, 30, 1.0)); say('inland forest', await beds(46, 34, 1.2)); say('whole coast, zoomed out', await beds(30, 26, 0.35));
+  await center(page, mal.x, mal.y, 1.1); await page.click('#speed [data-v="1"]');
+  const names = await ui(() => CH.sound.names.filter(id => !CH.sound.isLoop(id))), failed = [];
+  for (const id of names) { let ok = false; for (let i = 0; i < 8 && !ok; i++) { ok = await page.evaluate(id => CH.sound.play(id, { gain: 0.5 }), id); if (!ok) await wait(page, 1200); } if (!ok) failed.push(id); await wait(page, 140); }      // tunes take turns, and one asked for behind a long queue is refused: ask again
+  say('every effect plays', failed.length ? 'FAILED: ' + failed.join(' ') : names.length + ' of ' + names.length);
+  await ui(() => { CH.sound.state().played.coin = 0; }); const before = await ui(() => JSON.stringify(CH.sound.state().played));
+  await wait(page, 14000);
+  say('fourteen seconds of play', await ui(() => { const p = CH.sound.state().played, o = {}; ['coin', 'coins', 'register', 'buy', 'pop', 'moo', 'cart', 'gull', 'bird', 'hammer', 'pick', 'chop', 'saw', 'cluck', 'rooster', 'splash'].forEach(k => { if (p[k]) o[k] = p[k]; }); return o; }));
+  await ui(() => { CH.ui.act.modal({ name: 'settings' }); }); await wait(page, 300); await shot('1-settings');
+  await page.fill('#modal input[data-k=master]', '0'); await wait(page, 700); let quiet = 0; for (let i = 0; i < 6; i++) { await wait(page, 100); quiet = Math.max(quiet, await ui(() => CH.sound.level())); }
+  say('master at 0', { level: quiet.toFixed(4), stored: await ui(() => JSON.parse(localStorage.getItem('countinghouse.prefs.v1')).snd) });
+  await page.fill('#modal input[data-k=master]', '70'); await page.click('#modal [data-act=soundon][data-v="0"]'); await wait(page, 300);
+  say('sound off', await ui(() => ({ on: CH.sound.levels().on, plays: CH.sound.play('coin') })));
+  await page.click('#modal [data-act=soundon][data-v="1"]'); await wait(page, 400); say('sound on again', await ui(() => ({ on: CH.sound.levels().on, ctx: CH.sound.state().ctx, plays: CH.sound.play('coin') })));
+  await page.click('#modal .mfoot [data-act=close]');
+  await ui(() => CH.ui.act.tomenu()); await wait(page, 2600); say('behind the title', await ui(() => CH.sound.state().loops.join(' ')));
 };

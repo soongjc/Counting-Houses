@@ -4,7 +4,7 @@ const { CH, D, WD, I } = require('./kit');
 CH.learn.strict = true;                               // a fault in the Lessons book stops the run instead of being swallowed
 let seed = +process.argv[2] || 1; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 const pick = a => a[Math.floor(rnd() * a.length)];
-let S = CH.newGame({ seed: 99 + seed }); S.coins = 30000;
+let S = CH.newGame({ seed: 99 + seed, diff: process.env.DIFF }); S.coins = 30000;
 const stats = {};
 const tally = (k, q) => { const s = stats[k] = stats[k] || [0, 0]; s[q && q.ok ? 0 : 1]++; };
 function check(where) {

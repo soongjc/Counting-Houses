@@ -2,8 +2,8 @@
 (function (root) {
   'use strict';
   var CH = root.CH, D = CH.DEF, R = CH.draw, WD = CH.genWorld(), W = D.W, H = D.H, doc = document, G = D.goods, TPY = D.tpy;
-  var S, st, SAVE_KEY = 'countinghouse.save.v3', TICKS = 6;
-  var ui = { sel: null, tool: null, hover: null, preview: null, cam: { x: 0, y: 0, z: 1 }, speed: 1, paused: false, modal: null, tab: 'house', reach: false, pick: null, touch: false, confirm: null, canStore: true, lens: null, plain: false, alpha: 1, prev: new WeakMap(), chart: null, whatif: 0, leg: null, lesson: '', sc: {} };
+  var S, st, SAVE_KEY = 'countinghouse.save.v3', TICKS = 6, VERSION = '__VERSION__';
+  var ui = { sel: null, tool: null, hover: null, preview: null, cam: { x: 0, y: 0, z: 1 }, speed: 1, paused: false, modal: null, tab: 'house', reach: false, pick: null, touch: false, confirm: null, canStore: true, lens: null, plain: false, alpha: 1, prev: new WeakMap(), chart: null, whatif: 0, leg: null, lesson: '', sc: {}, screen: 'title', setup: null, msg: '', code: '' };
   var acc = 0, lastTs = 0, lastUi = 0, lastModal = 0, holdUntil = 0, dirty = true, toastUntil = 0, lastSave = 0, newsSeen = 0, prevKey = '', lastMini = 0, tipAt = null;
   function $(id) { return doc.getElementById(id); }
 
@@ -44,7 +44,8 @@
   function bld(id) { for (var i = 0; i < S.bl.length; i++) if (S.bl[i].id === +id) return S.bl[i]; return null; }
   function selM() { return ui.sel && ui.sel.k === 'm' ? merchant(ui.sel.id) : null; }
   function select(s) { if (!s || s.k !== 'm' || !ui.sel || ui.sel.k !== 'm' || ui.sel.id !== s.id) ui.pick = null; if (!s || !ui.sel || s.k !== ui.sel.k || s.id !== ui.sel.id || s.i !== ui.sel.i) { ui.chart = s && s.k === 'mkt' && ui.lens && G[ui.lens] ? ui.lens : null; ui.whatif = 0; ui.leg = null; } ui.sel = s; if (s) ui.tab = 'sel'; refresh(); }
-  function run(q, good_) { if (!q.ok) { if (q.why) toast(q.why); } else if (good_) toast(good_); refresh(); return q.ok; }
+  function sfx(id, o) { if (CH.sound) CH.sound.play(id, o); }
+  function run(q, good_) { if (!q.ok) { if (q.why) { toast(q.why); sfx('deny'); } } else if (good_) toast(good_); refresh(); return q.ok; }
 
   /* ---------- words for states ---------- */
   function mstat(m) {
@@ -94,7 +95,7 @@
     var sp = B('Pause', 'pause', null, 'spd' + (ui.paused ? ' on' : ''), ' aria-pressed="' + ui.paused + '"');
     [1, 2, 4, 8].forEach(function (v) { sp += B(v + '×', 'speed', { v: v }, 'spd' + (!ui.paused && ui.speed === v ? ' on' : ''), ' aria-pressed="' + (!ui.paused && ui.speed === v) + '"'); });
     setHTML($('speed'), sp);
-    setHTML($('menu'), B('Research' + (n ? '<span class="badge">' + n + '</span>' : ''), 'modal', { name: 'adv' }, 'mbtn') + B('Prices', 'modal', { name: 'prices' }, 'mbtn') + B('Finances', 'modal', { name: 'ledger' }, 'mbtn') + B('Lessons' + (nl ? '<span class="badge">' + nl + '</span>' : ''), 'modal', { name: 'lessons' }, 'mbtn') + B('Help', 'modal', { name: 'help' }, 'mbtn'));
+    setHTML($('menu'), B('Research' + (n ? '<span class="badge">' + n + '</span>' : ''), 'modal', { name: 'adv' }, 'mbtn') + B('Prices', 'modal', { name: 'prices' }, 'mbtn') + B('Finances', 'modal', { name: 'ledger' }, 'mbtn') + B('Lessons' + (nl ? '<span class="badge">' + nl + '</span>' : ''), 'modal', { name: 'lessons' }, 'mbtn') + B('Menu', 'modal', { name: 'menu' }, 'mbtn'));
   }
 
   /* ---------- left: what can be built, and the merchants ---------- */
@@ -139,10 +140,10 @@
   function head(title, sub, extra) { return '<header class="ih"><div><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + '</div>' + (extra || '') + '</header>'; }
   function find(x, y) { return B('Go to', 'center', { x: Math.round(x), y: Math.round(y) }, 'btn tiny'); }
   function inspHouse() {
-    var h = head('Overview', 'Rank: ' + CH.rank(S.coins) + '. ' + (S.over ? 'Game ended in ' + D.span[1] + '.' : (D.span[1] - CH.year(S)) + ' years left. Game ends in ' + D.span[1] + '.')), next = true;
+    var h = head(S.name, 'Rank: ' + CH.rank(S.coins) + '. ' + (S.over ? 'Game ended in ' + D.span[1] + '.' : (D.span[1] - CH.year(S)) + ' years left. Game ends in ' + D.span[1] + '.')), next = true;
     h += '<h3>Goals</h3><ol class="goals">';
     D.goals.forEach(function (g) {
-      var done = !!S.goals[g.id]; h += '<li class="' + (done ? 'done' : next ? 'next' : '') + '"><span class="gt">' + esc(g.t) + '</span>' + (g.r ? '<span class="gr">' + g.r + '</span>' : '') + (!done && next && g.h ? '<p class="hint">' + esc(g.h) + '</p>' : '') + '</li>';
+      var done = !!S.goals[g.id]; h += '<li class="' + (done ? 'done' : next ? 'next' : '') + '"><span class="gt">' + esc(g.t) + '</span>' + (g.r ? '<span class="gr">' + CH.reward(S, g) + '</span>' : '') + (!done && next && g.h ? '<p class="hint">' + esc(g.h) + '</p>' : '') + '</li>';
       if (!done) next = false;
     });
     h += '</ol>';
@@ -212,7 +213,7 @@
     h += '<p class="money">Profit: last trip <b class="' + tone(m.last || 0) + '">' + (m.last == null ? '–' : signed(m.last)) + '</b>, this year <b class="' + tone(m.yr[0]) + '">' + signed(m.yr[0]) + '</b>, total <b class="' + tone(m.pr) + '">' + signed(m.pr) + '</b></p>';
     h += '<label class="field"><span>Transport</span><select data-ch="trans" data-m="' + m.id + '" data-fk="trans' + m.id + '">';
     for (t in D.trans) { var td = D.trans[t]; if (td.adv && CH.advState(S, td.adv) === 'later') continue; var q = t === m.tr ? { ok: true, cost: 0 } : CH.can.trans(S, m, t); h += '<option value="' + t + '"' + (t === m.tr ? ' selected' : '') + (q.ok ? '' : ' disabled') + '>' + esc(td.n) + ', capacity ' + capFor(m, t) + (t === m.tr ? '' : q.ok ? ' (' + q.cost + ' coins' + (q.later ? ', at the next stop' : '') + ')' : ' (' + esc(lc(q.why.split('. ')[0]).replace(/\.$/, '')) + ')') + '</option>'; }
-    h += '</select></label><p class="hint">' + esc(d.d) + '</p>';
+    h += '</select></label><p class="hint">' + esc(d.d.replace(/^Capacity \d+\./, 'Capacity ' + cap + '.')) + '</p>';      // this merchant's capacity, trait included
     h += '<h3>Route</h3><div class="rowline"><select data-ch="route" data-m="' + m.id + '" data-fk="route' + m.id + '" aria-label="Route"><option value="0">Unassigned</option>';
     S.rt.forEach(function (q) { h += '<option value="' + q.id + '"' + (q.id === m.rt ? ' selected' : '') + '>' + esc(q.name) + '</option>'; });
     h += '</select>' + B('New route', 'newroute', { m: m.id }, 'btn') + '</div>';
@@ -313,6 +314,17 @@
     if (s && !ui.tool) h = '<p class="back">' + B('‹ Overview', 'sel', { k: '' }, 'link') + '</p>' + h;
     setHTML($('inspect'), h);
   }
+  function renderTitle() {
+    var el = $('title'); if (ui.screen !== 'title') { if (!el.hidden) { el.hidden = true; el.__h = ''; el.innerHTML = ''; } return; }
+    var s = S.tick > 0 ? CH.summary(S) : null, n = slots().length;
+    setHTML(el, '<div class="tcol"><div class="tmark" aria-hidden="true"></div><h1>Counting House</h1><p class="tsub">Build markets. Run merchants. Buy low, sell high.</p><p class="tera">Malacca coast, 1400 to 1511</p><nav class="tmenu" aria-label="Main menu">' +
+      (s ? B('<b>Continue</b><span>' + esc(s.name) + ', ' + s.year + ', ' + fmt(s.coins) + ' coins' + (s.over ? ', finished' : '') + '</span>', 'continue', null, 'tbtn lead') : '') +
+      B('<b>New game</b>', 'modal', { name: 'newgame' }, 'tbtn' + (s ? '' : ' lead')) +
+      B('<b>Load game</b>' + (n ? '<span>' + n + (n === 1 ? ' save' : ' saves') + '</span>' : ''), 'modal', { name: 'load' }, 'tbtn') +
+      B('<b>Records</b>', 'modal', { name: 'records' }, 'tbtn') + B('<b>How to play</b>', 'modal', { name: 'help' }, 'tbtn') + B('<b>Settings</b>', 'modal', { name: 'settings' }, 'tbtn') + B('<b>Credits</b>', 'modal', { name: 'credits' }, 'tbtn') +
+      '</nav><p class="tfoot">Version ' + VERSION + (ui.canStore ? '. Saves are kept in this browser.' : '. Saving is blocked in this browser. Progress lasts while this page stays open.') + '</p></div>');
+    el.hidden = false;
+  }
   function renderTabs() {
     var t = [['house', 'Overview'], ['build', 'Build'], ['merch', 'Merchants'], ['sel', 'Selected']], h = '';
     if (ui.tab === 'sel' && !ui.sel && !ui.tool) ui.tab = 'house';
@@ -351,7 +363,7 @@
   var MODALS = {
     help: function () {
       return ['How to play',
-        '<p class="lede">Malacca, 1400. You run a trading company with ' + fmt(D.startCoins) + ' coins. The game ends in ' + D.span[1] + '. Score: coins held.</p><ol class="how"><li><b>Build a market.</b> Sites in its range start producing. Their goods go into the market’s stock.</li>' +
+        '<p class="lede">Malacca, 1400. You run a trading company with ' + fmt(D.diffs[S.diff].coins) + ' coins. The game ends in ' + D.span[1] + '. Score: coins held.</p><ol class="how"><li><b>Build a market.</b> Sites in its range start producing. Their goods go into the market’s stock.</li>' +
         '<li><b>Grow towns.</b> Houses arrive while rice and fish are in stock, plus 2 of salt, cloth and pottery. Houses leave when food runs low.</li>' +
         '<li><b>Hire merchants.</b> Select the markets on a route. Auto orders buy low and sell high. Manual orders set exact loads at each stop.</li>' +
         '<li><b>Build trails and roads</b> between markets. Porters move at double speed on a trail. Ox carts require a road.</li>' +
@@ -363,7 +375,7 @@
         '<li><i class="lg mid"></i><span>Discs under a market name: household needs. Green: supplied. Gold: low. Red: missing. Squares with a tick: surplus goods at a low price.</span></li>' +
         '<li><i class="lg"></i><span>Over a merchant: cargo. Dotted ring: empty. Hover any object for output, stock and price. Select a good in the bar above the map to see its price at every market.</span></li></ul>' +
         '<p class="hint">Drag to move the map. Scroll or pinch to zoom. Space: pause. 1 to 4: speed. Esc: cancel.</p>' +
-        '<div class="mfoot">' + (S.tick ? B('New game', 'asknew', null, 'btn') : '') + B(S.tick ? 'Resume' : 'Start game', 'close', null, 'btn gold', ' data-autofocus') + '</div>' +
+        '<div class="mfoot">' + B(ui.screen === 'title' ? 'Close' : 'Play', 'close', null, 'btn gold', ' data-autofocus') + '</div>' +
         (ui.canStore ? '' : '<p class="hint">Saving is blocked in this browser. Progress lasts while this page stays open.</p>')];
     },
     hire: function () {
@@ -412,12 +424,71 @@
       return ['Finances', h, 'wide'];
     },
     lessons: function () { if (ui.lesson) CH.learn.read(S, ui.lesson); return ['Lessons', CH.learn.book(S, ui.lesson)]; },
+    menu: function () {
+      return ['Menu', '<div class="mlist">' + B('Resume', 'close', null, 'btn gold', ' data-autofocus') + B('Save game', 'modal', { name: 'save' }, 'btn') + B('Load game', 'modal', { name: 'load' }, 'btn') + B('New game', 'modal', { name: 'newgame' }, 'btn') +
+        B('Settings', 'modal', { name: 'settings' }, 'btn') + B('How to play', 'modal', { name: 'help' }, 'btn') + B('Records', 'modal', { name: 'records' }, 'btn') + B('Main menu', 'tomenu', null, 'btn') + '</div>', 'slim'];
+    },
+    newgame: function () {
+      var su = ui.setup || (ui.setup = { name: prefs.name || D.company, diff: D.diffs[prefs.diff] ? prefs.diff : 'normal' }), h, live = S.tick > 0 && !S.over;
+      h = '<label class="field wide"><span>Company name</span><input type="text" maxlength="32" value="' + esc(su.name) + '" data-ch="coname" autocomplete="off" spellcheck="false"></label>';
+      h += '<div class="field wide top"><span>Difficulty</span><div class="diffs" role="radiogroup" aria-label="Difficulty">';
+      Object.keys(D.diffs).forEach(function (k) {
+        var d = D.diffs[k];
+        h += B('<b>' + d.n + '</b><span>' + fmt(d.coins) + ' coins. Market fee ' + Math.round(d.fee * 100) + '%.' + (d.goal !== 1 ? ' Goal rewards ×' + d.goal + '.' : '') + '</span>', 'setdiff', { v: k }, 'diff' + (su.diff === k ? ' on' : ''), ' role="radio" aria-checked="' + (su.diff === k) + '"');
+      });
+      h += '</div></div>' + (live ? '<p class="hint">Starting replaces the autosave of ' + esc(S.name) + ', ' + CH.year(S) + '. Manual saves are kept.</p>' : '');
+      return ['New game', h + '<div class="mfoot">' + B('Cancel', 'close', null, 'btn') + B('Start game', 'startnew', null, 'btn gold', ' data-autofocus') + '</div>'];
+    },
+    load: function () {
+      var a = slots(), cur = S.tick > 0 ? CH.summary(S) : null, h = ui.msg ? '<p class="note">' + esc(ui.msg) + '</p>' : '';
+      h += '<ul class="saves">' + (cur ? saveRow('Autosave', cur, 0, B('Load', 'loadslot', { id: 'auto' }, 'btn gold')) : '');
+      a.forEach(function (q) { h += saveRow(q.s.name, q.s, q.t, B('Load', 'loadslot', { id: q.id }, 'btn gold') + B('Delete', 'delslot', { id: q.id, from: 'load' }, 'btn')); });
+      h += '</ul>' + (!cur && !a.length ? '<p>Saved games appear here.</p>' : '');
+      h += '<h3>Import a save</h3><p class="hint">From a save file or a save code made with Export.</p><div class="xfer"><label class="btn filebtn">Choose file<input type="file" accept=".json,application/json,text/plain" data-ch="importfile"></label></div>' +
+        '<textarea class="code" rows="3" placeholder="Or paste a save code here" data-ch="code" aria-label="Save code" spellcheck="false">' + esc(ui.code) + '</textarea><div class="mfoot">' + B('Close', 'close', null, 'btn') + B('Load code', 'importcode', null, 'btn') + '</div>';
+      return ['Load game', h];
+    },
+    save: function () {
+      var a = slots(), h = ui.msg ? '<p class="note">' + esc(ui.msg) + '</p>' : '';
+      h += B('Save as a new save', 'saveslot', null, 'btn gold wide', a.length >= MAXSLOTS ? ' disabled' : ' data-autofocus') + '<p class="hint">' + a.length + '/' + MAXSLOTS + ' saves used. The game also autosaves every 20 seconds.</p>';
+      h += '<ul class="saves">'; a.forEach(function (q) { h += saveRow(q.s.name, q.s, q.t, B('Overwrite', 'saveslot', { id: q.id }, 'btn') + B('Delete', 'delslot', { id: q.id, from: 'save' }, 'btn')); }); h += '</ul>';
+      h += '<h3>Export</h3><p class="hint">Move this game to another device or browser. Load it there with Load game, Import.</p><div class="mfoot left">' + B('Export file', 'exportfile', null, 'btn') + B('Copy save code', 'copycode', null, 'btn') + '</div>';
+      return ['Save game', h + '<div class="mfoot">' + B('Close', 'close', null, 'btn') + '</div>'];
+    },
+    records: function () {
+      var a = records(), h;
+      if (!a.length) return ['Records', '<p>Finished games appear here. A game finishes in ' + D.span[1] + '.</p><div class="mfoot">' + B('Close', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
+      h = '<table class="tbl rec"><thead><tr><th class="num">#</th><th>Company</th><th>Difficulty</th><th class="num">Coins</th><th>Rank</th><th class="num more">Goals</th><th class="num more">Largest town</th></tr></thead><tbody>';
+      a.slice(0, 10).forEach(function (q, k) { h += '<tr><td class="num">' + (k + 1) + '</td><td>' + esc(String(q.name || D.company)) + '</td><td>' + (D.diffs[q.diff] || D.diffs.normal).n + '</td><td class="num"><b>' + fmt(q.coins) + '</b></td><td>' + esc(String(q.rank || CH.rank(q.coins))) + '</td><td class="num more">' + (q.goals | 0) + '/' + D.goals.length + '</td><td class="num more">' + (q.top | 0) + ' houses</td></tr>'; });
+      return ['Records', h + '</tbody></table><div class="mfoot">' + B('Close', 'close', null, 'btn gold', ' data-autofocus') + '</div>', 'wide'];
+    },
+    credits: function () {
+      var c = CH.credits || [], h = '<h3 class="first">Sound</h3><p>Every sound is a recording, trimmed and levelled for the game.</p>';
+      function rows(lic) { return '<ul class="cred">' + c.filter(function (q) { return (q.lic === 'CC BY 4.0') === lic; }).map(function (q) { return '<li><a href="' + esc(q.page) + '" target="_blank" rel="noopener">' + esc(q.title) + '</a> by ' + esc(q.by) + '</li>'; }).join('') + '</ul>'; }
+      h += '<p class="credh"><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0</a></p>' + rows(true);
+      h += '<p class="credh"><a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">Public domain, CC0 1.0</a></p>' + rows(false);
+      h += '<h3>Typefaces</h3><p>Alegreya and Alegreya Sans by Juan Pablo del Peral, Huerta Tipogr\u00e1fica. SIL Open Font License.</p>';
+      return ['Credits', h + '<div class="mfoot">' + B('Close', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
+    },
+    settings: function () {
+      var v = CH.sound ? CH.sound.levels() : null, h = '';
+      if (v) {
+        h += '<h3 class="first">Audio</h3><div class="field wide vol"><span>Sound</span><div class="seg" role="group" aria-label="Sound">' + B('On', 'soundon', { v: 1 }, 'btn tiny' + (v.on ? ' on' : ''), ' aria-pressed="' + !!v.on + '"') + B('Off', 'soundon', { v: 0 }, 'btn tiny' + (v.on ? '' : ' on'), ' aria-pressed="' + !v.on + '"') + '</div></div>';
+        [['master', 'Master volume'], ['amb', 'Ambience'], ['fx', 'Effects']].forEach(function (q) { h += '<label class="field wide vol"><span>' + q[1] + '</span><input type="range" min="0" max="100" step="5" value="' + Math.round(v[q[0]] * 100) + '" data-ch="vol" data-k="' + q[0] + '"><b>' + Math.round(v[q[0]] * 100) + '</b></label>'; });
+        h += '<p class="hint">Ambience: markets, water, forest and animals near the view. Effects: trades, building and news. M: sound on or off.</p>';
+      }
+      return ['Settings', h + '<div class="mfoot">' + B('Credits', 'modal', { name: 'credits' }, 'btn') + B('Close', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
+    },
     over: function () {
       var n = D.goals.filter(function (g) { return S.goals[g.id]; }).length;
-      return ['Game over', '<p class="final">' + D.span[1] + ': the Portuguese fleet arrives at Malacca. Final score: <b>' + fmt(S.final) + ' coins</b>. Rank: <b>' + CH.rank(S.final) + '</b>.</p><p>Goals: ' + n + '/' + D.goals.length + '. Largest town: ' + (S.top || 0) + ' houses.</p><div class="mfoot">' + B('New game', 'asknew', null, 'btn') + B('Keep playing', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
+      return ['Game over', '<p class="final">' + D.span[1] + ': the Portuguese fleet arrives at Malacca. Final score: <b>' + fmt(S.final) + ' coins</b>. Rank: <b>' + CH.rank(S.final) + '</b>.</p><p>Goals: ' + n + '/' + D.goals.length + '. Largest town: ' + (S.top || 0) + ' houses.</p><div class="mfoot">' + B('Main menu', 'tomenu', null, 'btn') + B('Records', 'modal', { name: 'records' }, 'btn') + B('Keep playing', 'close', null, 'btn gold', ' data-autofocus') + '</div>'];
     },
     confirm: function () { var c = ui.confirm; return [c.title, '<p>' + esc(c.text) + '</p><div class="mfoot">' + B('Cancel', 'close', null, 'btn', ' data-autofocus') + B(c.yes, c.act, c.data, 'btn gold') + '</div>']; }
   };
+  function when(t) { var d = new Date(t), p = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getFullYear() + ', ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  function saveRow(title, s, t, buttons) {   // one saved game in a list: what it is, where it stands, and what can be done with it
+    return '<li><div class="sv"><b>' + esc(String(title)) + '</b><span>' + (s.year | 0) + ', ' + fmt(+s.coins || 0) + ' coins, ' + esc(String(s.rank || '')) + ', ' + (D.diffs[s.diff] || D.diffs.normal).n + (s.over ? ', finished' : '') + '</span>' + (t ? '<span class="dim">Saved ' + when(t) + '</span>' : '<span class="dim">The game in progress</span>') + '</div><div class="svb">' + buttons + '</div></li>';
+  }
   function renderModal(first) {
     var el = $('modal'); if (!ui.modal) { el.hidden = true; el.__h = ''; el.innerHTML = ''; return; }
     var m = MODALS[ui.modal](), was = el.querySelector('.dialog'), keep = was && !first ? was.scrollTop : 0;
@@ -427,9 +498,10 @@
     else if (keep) { var d2 = el.querySelector('.dialog'); if (d2 && d2.scrollTop !== keep) d2.scrollTop = keep; }
     if (ui.jump) { ui.jump = 0; var op = el.querySelector('[data-open]'); if (op && op.scrollIntoView) op.scrollIntoView({ block: 'nearest' }); }
   }
-  function openModal(name) { ui.back = doc.activeElement; ui.modal = name; renderModal(true); }
+  function openModal(name) { if (!ui.modal) ui.back = doc.activeElement; if (name !== 'confirm' && name !== ui.modal) { ui.msg = ''; if (name === 'newgame') ui.setup = null; } ui.modal = name; renderModal(true); }
   function closeModal() { ui.modal = null; ui.confirm = null; renderModal(); if (ui.back && doc.contains(ui.back)) ui.back.focus(); refresh(); }
-  function ask(title, text, yes, act, data) { ui.confirm = { title: title, text: text, yes: yes, act: act, data: data }; openModal('confirm'); }
+  function ask(title, text, yes, act, data) { ui.confirm = { title: title, text: text, yes: yes, act: act, data: data, back: ui.modal && ui.modal !== 'confirm' ? ui.modal : null }; var m = ui.msg; openModal('confirm'); ui.msg = m; }
+  function back(msg) { var b = ui.confirm && ui.confirm.back; ui.confirm = null; if (b) { ui.modal = b; ui.msg = msg || ''; renderModal(true); } else { closeModal(); if (msg) toast(msg); } }      // after a confirmation: return to the dialog that asked
 
   /* ---------- what buttons do ---------- */
   function setTool(t) { ui.tool = t; ui.preview = null; ui.pick = null; prevKey = ''; if (t) ui.tab = 'build'; refresh(); }
@@ -449,7 +521,7 @@
     whatif: function (d) { var m = ui.sel && ui.sel.k === 'mkt' ? CH.mkt(S, ui.sel.id) : null; ui.whatif = CH.learn.clampTrade(m, ui.chart, (ui.whatif || 0) + (+d.d)); },
     leg: function (d) { ui.leg = ui.leg && ui.leg.r === +d.r && ui.leg.k === +d.k && ui.leg.g === d.g ? null : { r: +d.r, k: +d.k, g: d.g }; },
     lesson: function (d) { var was = ui.modal === 'lessons'; ui.lesson = was && ui.lesson === d.id ? '' : d.id; ui.jump = ui.lesson ? 1 : 0; if (!was) openModal('lessons'); },
-    close: function () { closeModal(); },
+    close: function () { if (ui.modal === 'confirm' && ui.confirm && ui.confirm.back) back(ui.msg); else closeModal(); },
     tool: function (d) { var t = d.k === 'market' ? +d.t : d.t; if (ui.tool && ui.tool.k === d.k && ui.tool.t === t) setTool(null); else setTool({ k: d.k, t: t, from: null, pend: null }); },
     cancel: function () { setTool(null); },
     lay: function () { layPath(ui.tool.pend); },
@@ -458,7 +530,7 @@
     zoom: function (d) { zoomAt(st.vw / 2, st.vh / 2, +d.d > 0 ? 1.35 : 1 / 1.35); },
     reach: function () { ui.reach = !ui.reach; },
     hire: function (d) {
-      var q = CH.act.hire(S, +d.k); if (!run(q)) return;
+      var q = CH.act.hire(S, +d.k); if (!run(q)) return; sfx('hire');
       closeModal(); select({ k: 'm', id: q.m.id }); if (!onScreen(q.m.x, q.m.y)) R.center(st, ui.cam, q.m.x, q.m.y);
       if (S.mk.length > 1) { startRoute(q.m); toast(q.m.nm + ' hired. Click the markets for his route, in order.'); }      // straight to work: a route of his own, ready for its stops
       else toast(q.m.nm + ' hired. Build a second market to set up a route.');
@@ -478,16 +550,51 @@
     un: function (d) { var Rt = CH.routeOf(S, +d.r), s = Rt.stops[+d.k]; CH.act.setUnload(S, Rt, +d.k, d.g, ((s.un !== 'all' && s.un[d.g]) || 0) + (+d.d)); },
     unpick: function (d) { CH.act.setUnload(S, CH.routeOf(S, +d.r), +d.k, null); },
     unall: function (d) { CH.act.setUnload(S, CH.routeOf(S, +d.r), +d.k, 'all'); },
-    enlarge: function (d) { var m = CH.mkt(S, +d.id); run(CH.act.enlarge(S, m)); },
-    buybld: function (d) { run(CH.act.buyBld(S, bld(d.id)), 'Workshop bought.'); },
+    enlarge: function (d) { var m = CH.mkt(S, +d.id); if (run(CH.act.enlarge(S, m))) sfx('build'); },
+    buybld: function (d) { if (run(CH.act.buyBld(S, bld(d.id)), 'Workshop bought.')) sfx('coins'); },
     mode: function (d) { run(CH.act.mode(S, bld(d.id), d.mode)); },
-    adv: function (d) { run(CH.act.buyAdv(S, d.id), 'Researched: ' + D.adv[d.id].n + '.'); },
-    asknew: function () { ask('Start a new game?', 'Current progress will be erased.', 'New game', 'newgame'); },
-    newgame: function () { closeModal(); newGame(); openModal('help'); }
+    adv: function (d) { if (run(CH.act.buyAdv(S, d.id), 'Researched: ' + D.adv[d.id].n + '.')) sfx('chime'); },
+    'continue': function () { enter(); },
+    tomenu: function () { closeModal(); toTitle(); },
+    setdiff: function (d) { if (ui.setup && D.diffs[d.v]) ui.setup.diff = d.v; },
+    startnew: function () {
+      var su = ui.setup || {}, name = String(su.name || '').trim().slice(0, 32) || D.company;
+      setPref('name', name); setPref('diff', su.diff); closeModal(); newGame({ name: name, diff: su.diff }); enter();
+      if (!prefs.helped) { setPref('helped', 1); openModal('help'); }
+    },
+    loadslot: function (d) {
+      if (d.id === 'auto') { closeModal(); enter(); return; }
+      var q = slots().filter(function (x) { return x.id === d.id; })[0]; if (!q) return;
+      if (S.tick > 0 && !S.over) ask('Load ' + q.s.name + ', ' + q.s.year + '?', 'It becomes the game in progress and replaces the autosave of ' + S.name + ', ' + CH.year(S) + '.', 'Load', 'loadslot2', { id: d.id });
+      else ACT.loadslot2(d);
+    },
+    loadslot2: function (d) { ui.confirm = null; if (openGame(textOf(d.id))) { closeModal(); enter(); toast('Game loaded.'); } else { ui.modal = 'load'; ui.msg = 'This save is unreadable in this version of the game.'; renderModal(true); } },
+    saveslot: function (d) {
+      if (d.id) { var q = slots().filter(function (x) { return x.id === d.id; })[0]; if (q) return ask('Overwrite this save?', q.s.name + ', ' + q.s.year + ', saved ' + when(q.t) + '. It is replaced by the game in progress.', 'Overwrite', 'saveslot2', { id: d.id }); }
+      var r = saveSlot(null); ui.msg = r.ok ? 'Game saved.' : r.why;
+    },
+    saveslot2: function (d) { var r = saveSlot(d.id); back(r.ok ? 'Game saved.' : r.why); },
+    delslot: function (d) { var q = slots().filter(function (x) { return x.id === d.id; })[0]; if (q) ask('Delete this save?', q.s.name + ', ' + q.s.year + ', saved ' + when(q.t) + '. Deleting is permanent.', 'Delete', 'delslot2', { id: d.id }); },
+    delslot2: function (d) { dropSlot(d.id); back('Save deleted.'); },
+    exportfile: function () { ui.msg = exportFile() ? 'Save file exported: ' + exportName() + '.' : 'File export is blocked in this browser. Use Copy save code.'; },
+    copycode: function () {
+      var text = CH.serialize(S);
+      try { root.navigator.clipboard.writeText(text).then(function () { ui.msg = 'Save code copied. Paste it into Load game, Import on the other device.'; renderModal(); }, function () { ui.code = text; ui.msg = 'Copying is blocked in this browser. Open Load game: the code is in the Import box to copy by hand.'; renderModal(); }); }
+      catch (err) { ui.code = text; ui.msg = 'Copying is blocked in this browser. Open Load game: the code is in the Import box to copy by hand.'; }
+    },
+    importcode: function () { var el = doc.querySelector('#modal textarea.code'), text = el ? el.value.trim() : ''; importText(text); },
+    soundon: function (d) { if (CH.sound) { CH.sound.set('on', +d.v ? 1 : 0); setPref('snd', CH.sound.levels()); } }
   };
+  function importText(text) {               // a save from a file or pasted as a code becomes the game in progress
+    if (!text) { ui.msg = 'Paste a save code or choose a save file first.'; return; }
+    if (openGame(text)) { ui.code = ''; closeModal(); enter(); toast('Game loaded.'); }
+    else { ui.msg = 'Load failed: invalid save. Use a save file or save code made with Export.'; if (ui.modal) renderModal(); }
+  }
   function onClick(e) {
     var b = e.target.closest ? e.target.closest('[data-act]') : null;
-    if (!b) { if (e.target.id === 'modal') closeModal(); return; }
+    if (!b) { if (e.target.id === 'modal') { ACT.close(); if (ui.modal) renderModal(); } return; }
+    if (b.disabled) return;
+    if (b.classList.contains('tbtn') || b.classList.contains('tool') || (b.parentNode && b.parentNode.classList.contains('mlist'))) sfx('tick');
     var f = ACT[b.getAttribute('data-act')]; if (f) { f(b.dataset, b); refresh(); if (ui.modal) renderModal(); }
   }
   function onChange(e) {
@@ -497,6 +604,10 @@
     else if (ch === 'addstop' && v) addStop(CH.routeOf(S, +t.getAttribute('data-r')), +v);
     else if (ch === 'addload' && v) { Rt = CH.routeOf(S, +t.getAttribute('data-r')); CH.act.setLoad(S, Rt, +t.getAttribute('data-s'), v, 1); }
     else if (ch === 'rname') { Rt = CH.routeOf(S, +t.getAttribute('data-r')); v = v.trim().slice(0, 28); if (Rt && v) { Rt.name = v; Rt.an = 0; } }
+    else if (ch === 'coname') { if (ui.setup) ui.setup.name = v; }
+    else if (ch === 'code') ui.code = v;
+    else if (ch === 'vol') { if (CH.sound) { CH.sound.set(t.getAttribute('data-k'), +v / 100); setPref('snd', CH.sound.levels()); var lab = t.parentNode.querySelector('b'); if (lab) lab.textContent = v; } }
+    else if (ch === 'importfile' && t.files && t.files[0]) { var fr = new FileReader(); fr.onload = function () { importText(String(fr.result || '').trim()); refresh(); }; fr.onerror = function () { ui.msg = 'This file is unreadable.'; renderModal(); }; fr.readAsText(t.files[0]); }
     if (t.tagName === 'SELECT') t.blur();
     $('inspect').__h = ''; refresh();
   }
@@ -534,7 +645,7 @@
   }
   function layPath(end) {
     var t = ui.tool, q = CH.act.path(S, t.t, t.from, end);
-    if (run(q)) { t.from = end; t.pend = null; prevKey = ''; toast('Built ' + q.n + ' tiles for ' + q.cost + ' coins. Click again to extend.'); } else { t.pend = null; prevKey = ''; }
+    if (run(q)) { t.from = end; t.pend = null; prevKey = ''; toast('Built ' + q.n + ' tiles for ' + q.cost + ' coins. Click again to extend.'); sfx('path'); } else { t.pend = null; prevKey = ''; }
   }
   function mapClick(sx, sy) {
     var p = R.pick(st, S, ui.cam, sx, sy, !!ui.tool), t = ui.tool, tt = R.toTile(st, ui.cam, sx, sy), x = Math.round(tt[0]), y = Math.round(tt[1]), q;
@@ -542,8 +653,8 @@
       if (t.k === 'path' && (p.k === 'mkt' || p.k === 'hq')) { x = p.x; y = p.y; }      // a click on a market's stalls means the market
       if (!inMap(x, y)) return;
       ui.hover = [x, y]; prevKey = '';
-      if (t.k === 'market') { q = CH.act.market(S, x, y, t.t); if (run(q)) { setTool(null); select({ k: 'mkt', id: q.m.id }); } }
-      else if (t.k === 'bld') { q = CH.act.build(S, t.t, x, y); if (run(q)) { setTool(null); select({ k: 'bld', id: q.b.id, at: [x, y] }); } }
+      if (t.k === 'market') { q = CH.act.market(S, x, y, t.t); if (run(q)) { sfx('build'); setTool(null); select({ k: 'mkt', id: q.m.id }); } }
+      else if (t.k === 'bld') { q = CH.act.build(S, t.t, x, y); if (run(q)) { sfx('build'); setTool(null); select({ k: 'bld', id: q.b.id, at: [x, y] }); } }
       else if (t.from == null) { if (CH.layCost(S, t.t, y * W + x) < 0) toast('Start on open ground or at a market.'); else t.from = y * W + x; }
       else if (ui.touch) { t.pend = y * W + x; updatePreview(); }
       else layPath(y * W + x);
@@ -666,11 +777,13 @@
   }
   function onKey(e) {
     var tag = (e.target.tagName || '').toLowerCase(), typing = tag === 'input' || tag === 'select' || tag === 'textarea';
-    if (e.key === 'Escape') { if (ui.modal) closeModal(); else if (ui.tool) setTool(null); else if (ui.pick) ui.pick = null; else select(null); refresh(); return; }
-    if (typing || ui.modal || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Escape') { if (ui.modal) { ACT.close(); if (ui.modal) renderModal(); } else if (ui.screen !== 'game') return; else if (ui.tool) setTool(null); else if (ui.pick) ui.pick = null; else if (ui.sel) select(null); else openModal('menu'); refresh(); return; }
+    if (e.key === 'Enter' && tag === 'input' && e.target.getAttribute('data-ch') === 'coname') { if (ui.setup) ui.setup.name = e.target.value; ACT.startnew(); refresh(); return; }
+    if (typing || ui.modal || ui.screen !== 'game' || e.ctrlKey || e.metaKey || e.altKey) return;
     var k = e.key.toLowerCase(), pan = 90 / ui.cam.z;
     if (e.key === ' ' && tag !== 'button') { e.preventDefault(); ui.paused = !ui.paused; }
     else if (e.key >= '1' && e.key <= '4') { ui.speed = [1, 2, 4, 8][+e.key - 1]; ui.paused = false; }
+    else if (k === 'm' && CH.sound) { var on = CH.sound.levels().on ? 0 : 1; CH.sound.set('on', on); setPref('snd', CH.sound.levels()); toast(on ? 'Sound on.' : 'Sound off.'); }
     else if (e.key === '+' || e.key === '=') zoomAt(st.vw / 2, st.vh / 2, 1.3);
     else if (e.key === '-') zoomAt(st.vw / 2, st.vh / 2, 0.77);
     else if (k === 'arrowleft' || k === 'a') { ui.cam.x -= pan; R.clamp(st, ui.cam); }
@@ -683,41 +796,122 @@
   }
 
   /* ---------- saving ---------- */
+  /* The current game is saved by itself, every 20 seconds and whenever the page is left: that is the autosave. A player can also keep up to
+     ten saves of their own, each under its own key with a line in an index that says what is in it. Finished games go on the records list. */
+  var KEY = { slots: 'countinghouse.slots.v1', slot: 'countinghouse.slot.', rec: 'countinghouse.records.v1', prefs: 'countinghouse.prefs.v1' }, MAXSLOTS = 10;
+  function readJSON(k, d) { try { var t = localStorage.getItem(k); return t ? JSON.parse(t) : d; } catch (err) { return d; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (err) { return false; } }
+  var prefs = readJSON(KEY.prefs, null); if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) prefs = {};
+  function setPref(k, v) { prefs[k] = v; writeJSON(KEY.prefs, prefs); }
   function save() { lastSave = performance.now(); try { localStorage.setItem(SAVE_KEY, CH.serialize(S)); ui.canStore = true; return true; } catch (err) { ui.canStore = false; return false; } }
-  function load(text) { try { var s = CH.revive(JSON.parse(text)); CH.tick(s); CH.view.route(s, { stops: [] }, null); s.mk.forEach(function (m) { CH.view.market(s, m); }); return s; } catch (err) { return null; } }
-  function newGame() { S = CH.newGame({ seed: (Date.now() % 2147483647) | 1 }); if (st) R.ground(st, S); ui.sel = null; ui.tool = null; ui.pick = null; ui.paused = false; ui.speed = 1; ui.tab = 'house'; ui.sc = {}; newsSeen = S.nn; home(); save(); refresh(); }
+  function load(text) { try { var s = CH.revive(JSON.parse(text)); CH.tick(s); CH.view.route(s, { stops: [] }, null); s.mk.forEach(function (m) { CH.view.market(s, m); }); CH.summary(s); return s; } catch (err) { return null; } }
+  function slots() { var a = readJSON(KEY.slots, []); return Array.isArray(a) ? a.filter(function (q) { return q && typeof q.id === 'string' && q.s && typeof q.s === 'object'; }) : []; }
+  function textOf(id) { try { return localStorage.getItem(id === 'auto' ? SAVE_KEY : KEY.slot + id); } catch (err) { return null; } }
+  function saveSlot(id) {                   // keep the current game under a save of its own; no id makes a new one
+    var a = slots();
+    if (!id) { if (a.length >= MAXSLOTS) return { ok: false, why: 'Save limit reached: ' + MAXSLOTS + '. Overwrite or delete a save.' }; id = 's' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
+    try { localStorage.setItem(KEY.slot + id, CH.serialize(S)); } catch (err) { return { ok: false, why: 'Browser storage is full or blocked. Export the save to a file.' }; }
+    a = a.filter(function (q) { return q.id !== id; }); a.unshift({ id: id, t: Date.now(), s: CH.summary(S) });
+    return writeJSON(KEY.slots, a) ? { ok: true, id: id } : { ok: false, why: 'Browser storage is full or blocked. Export the save to a file.' };
+  }
+  function dropSlot(id) { try { localStorage.removeItem(KEY.slot + id); } catch (err) { /* gone either way */ } writeJSON(KEY.slots, slots().filter(function (q) { return q.id !== id; })); }
+  function records() { var a = readJSON(KEY.rec, []); return Array.isArray(a) ? a.filter(function (q) { return q && typeof q.coins === 'number'; }) : []; }
+  function record() {                       // a finished game goes on the records list, once; its coins year by year go with it
+    if (!S.over || S.rec) return; S.rec = 1;
+    var a = records(), s = CH.summary(S);
+    a.push({ name: s.name, diff: s.diff, coins: S.final, rank: CH.rank(S.final), goals: D.goals.filter(function (g) { return S.goals[g.id]; }).length, top: S.top || 0, t: Date.now(), hist: S.hist.slice(0, 200) });
+    a.sort(function (x, y) { return y.coins - x.coins; }); writeJSON(KEY.rec, a.slice(0, 20)); save();
+  }
+  function resetView() { ui.sel = null; ui.tool = null; ui.pick = null; ui.preview = null; ui.paused = false; ui.speed = 1; ui.tab = 'house'; ui.sc = {}; ui.chart = null; ui.leg = null; ui.lens = null; newsSeen = S.nn; if (st) { R.ground(st, S); home(); } }
+  function newGame(o) { o = o || {}; S = CH.newGame({ seed: (Date.now() % 2147483647) | 1, name: o.name, diff: o.diff }); fromSave = false; camKept = null; resetView(); save(); refresh(); }
+  function openGame(text) {                 // make a saved game the current one; false when the text is not a save this version reads
+    var s = text ? load(text) : null; if (!s) return false;
+    S = s; fromSave = true; loadedTick = S.tick; camKept = null; resetView(); save(); refresh(); return true;
+  }
+  var camKept = null, driftDir = 1, still = !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function frameMap() { if (st) { R.resize(st); R.clamp(st, ui.cam); } }                 // the map's box changes size between the title and the game
+  function enter() {                         // from the title screen into the game
+    ui.screen = 'game'; ui.paused = false; ui.msg = ''; doc.body.classList.remove('titled'); frameMap();
+    if (camKept) { ui.cam.x = camKept.x; ui.cam.y = camKept.y; ui.cam.z = camKept.z; camKept = null; R.clamp(st, ui.cam); } else home();
+    if (CH.sound) { CH.sound.wake(); sfx('start', { gain: 0.8 }); } renderTitle(); refresh();
+  }
+  function toTitle() { save(); camKept = { x: ui.cam.x, y: ui.cam.y, z: ui.cam.z }; ui.screen = 'title'; ui.sel = null; ui.tool = null; ui.pick = null; doc.body.classList.add('titled'); frameMap(); renderTitle(); refresh(); }
+  function drift(dt) { if (still) return; var c = ui.cam, x0 = c.x; c.x += driftDir * dt * 9 / c.z; R.clamp(st, c); if (Math.abs(c.x - x0) < 1e-3) driftDir = -driftDir; }      // the coast slides slowly past behind the title
+  function exportName() { var s = CH.summary(S); return 'counting-house-' + (s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'save') + '-' + s.year + '.json'; }
+  function exportFile() {
+    try { var a = doc.createElement('a'), u = URL.createObjectURL(new Blob([CH.serialize(S)], { type: 'application/json' })); a.href = u; a.download = exportName(); doc.body.appendChild(a); a.click(); a.remove(); root.setTimeout(function () { URL.revokeObjectURL(u); }, 5000); return true; }
+    catch (err) { return false; }
+  }
   function home() { ui.cam.z = Math.max(R.minZoom(st), Math.min(1, st.vw / 900)); R.center(st, ui.cam, WD.hq.x + 2, WD.hq.y + 1); }
 
   /* ---------- the loop ---------- */
-  var faults = 0, fromSave = false, loadedTick = -1;
+  var faults = 0, fromSave = false, loadedTick = -1, LIVE = { adv: 1, prices: 1, ledger: 1, lessons: 1, hire: 1 };      // LIVE: dialogs that show the game's figures and are drawn again while open
   function frame(ts) {
     try { step(ts); faults = 0; }
     catch (err) {
       faults++; if (root.console) console.error(err);
-      if (fromSave && S.tick <= loadedTick + 2) { fromSave = false; newGame(); toast('Save unreadable. New game started.'); }
+      if (fromSave && S.tick <= loadedTick + 2) { fromSave = false; newGame(); toast('Save unreadable. New game started.'); }       // a save that opens and then breaks the first tick
       else { ui.paused = true; toast('Error. Game paused: ' + (err && err.message ? err.message : err)); }
     }
     if (faults < 30) root.requestAnimationFrame(frame);
   }
+  var lastHear = 0;
+  function hear(ts) {                       // hand the sound engine what the game reported, placed on the screen, and a few times a second what the view holds
+    var snd = CH.sound, q = CH.rt(S).snd; if (!snd) { q.length = 0; return; }
+    var live = ui.screen === 'game', near = Math.max(0, Math.min(1, (ui.cam.z - 0.3) / 0.8)), vw = st.vw, vh = st.vh, quiet = !!ui.modal;
+    function panOf(sx) { return Math.max(-1, Math.min(1, sx / vw * 2 - 1)); }
+    function at(x, y) { var p = R.toScreen(st, ui.cam, x, y); return p[0] >= 0 && p[1] >= 0 && p[0] <= vw && p[1] <= vh ? [panOf(p[0]), 0.35 + 0.65 * near] : null; }
+    snd.pace = ui.speed;
+    while (q.length) {
+      var e = q.shift(); if (!live || quiet) continue;
+      var p = R.toScreen(st, ui.cam, e.x, e.y), off = Math.max(0, -p[0] / vw, p[0] / vw - 1, -p[1] / vh, p[1] / vh - 1);      // how far outside the view, in screens
+      snd.event(e, panOf(p[0]), off <= 0 ? 0.6 + 0.4 * near : ui.speed > 2 ? 0 : off < 1 ? 0.3 * (1 - off) + 0.07 : 0.07);
+    }
+    if (ts - lastHear < 400) return; lastHear = ts;
+    var spots = {}, water = 0, wood = 0, seen = 0, pop = 0, fires = 0, i, j;
+    for (i = 0; i < 7; i++) for (j = 0; j < 5; j++) {
+      var t = R.toTile(st, ui.cam, (i + 0.5) * vw / 7, (j + 0.5) * vh / 5), tx = Math.round(t[0]), ty = Math.round(t[1]); if (!inMap(tx, ty)) continue;
+      seen++; var tr = CH.ter(S, CH.I(tx, ty)); if (tr === D.T.SEA || tr === D.T.RIVER) water++; else if (tr === D.T.FOREST) wood++;
+    }
+    water = seen ? water / seen : 0.5; wood = seen ? wood / seen : 0;
+    function spot(kind, x, y) { if (spots[kind] && Math.random() < 0.5) return; var a = at(x, y); if (a) spots[kind] = a; }      // of several of a kind in view, any one may be the one heard
+    S.mk.forEach(function (m) { var c = R.toScreen(st, ui.cam, m.x, m.y), rr = D.sizes[m.sz].r * 44 * ui.cam.z; if (c[0] < -rr || c[1] < -rr || c[0] > vw + rr || c[1] > vh + rr) return; pop += m.pop * (at(m.x, m.y) ? 1 : 0.4); if (m.pop >= 3 && near > 0.25) spot('cluck', m.x, m.y); if (m.pop >= 8 && near > 0.25) spot('rooster', m.x, m.y); });
+    S.bl.forEach(function (b) {
+      if (!b.mk || (D.bld[b.t].kind === 'works' && b.st !== 'run')) return;
+      if ((b.t === 'potter' || b.t === 'smelter' || b.t === 'goldsmith' || b.t === 'curing') && at(b.x, b.y)) fires++;
+      if (b.t === 'smelter' || b.t === 'goldsmith' || b.t === 'shipyard') spot('hammer', b.x, b.y); else if (b.t === 'carpenter') spot('saw', b.x, b.y); else if (b.t === 'harbour') spot('gull', b.x, b.y);
+    });
+    WD.sites.forEach(function (s, n) { if (!S.st[n].on) return; if (s.t === 'timber') spot('chop', s.x, s.y); else if (s.t === 'mine' || s.t === 'goldpit') spot('pick', s.x, s.y); else if (s.t === 'fishery') spot('splash', s.x, s.y); });
+    S.ms.forEach(function (m) { var h = R.here(m); if (m.tr === 'cart') { spot('ox', h[0], h[1]); if (m.st === 'go') spot('cart', h[0], h[1]); } else if (D.trans[m.tr].mode === 'water' && m.st === 'go') spot('splash', h[0], h[1]); });
+    if (water > 0.2 && !spots.gull) spots.gull = [Math.random() * 1.6 - 0.8, 0.3 + 0.4 * water];
+    if (wood > 0.15) spots.bird = [Math.random() * 1.6 - 0.8, (0.3 + 0.7 * near) * Math.min(1, wood * 2)];
+    var hush = quiet ? 0.55 : 1, beds = { crowd: Math.min(1, Math.sqrt(pop) / 8) * (0.3 + 0.7 * near) * hush, waves: Math.min(1, water * 1.8) * 0.9 * hush, forest: Math.min(1, wood * 1.7) * (0.35 + 0.65 * near) * hush, fire: Math.min(1, fires * 0.5) * near * hush };
+    if (!live) { beds.crowd *= 0.6; beds.fire = 0; spots = spots.gull ? { gull: spots.gull } : {}; }      // behind the title: the sea, a murmur, a gull
+    else if (quiet || ui.paused) spots = {};
+    snd.scene({ beds: beds, spots: spots });
+  }
   function remember() { for (var i = 0; i < S.ms.length; i++) { var m = S.ms[i], q = ui.prev.get(m), h = R.here(m); if (!q) { q = {}; ui.prev.set(m, q); } q.p = m.path; q.s = m.pi + m.pf; q.x = h[0]; q.y = h[1]; } }
   function step(ts) {
     var dt = Math.min(0.12, (ts - lastTs) / 1000 || 0); lastTs = ts;
-    if (!ui.paused && !ui.modal) { acc += dt * TICKS * ui.speed; var n = 0; while (acc >= 1 && n < 60) { remember(); CH.tick(S); acc -= 1; n++; } if (acc > 3) acc = 0; }
+    var live = ui.screen === 'game';
+    if (live && !ui.paused && !ui.modal) { acc += dt * TICKS * ui.speed; var n = 0; while (acc >= 1 && n < 60) { remember(); CH.tick(S); acc -= 1; n++; } if (acc > 3) acc = 0; }
+    if (!live && !ui.modal) drift(dt);
     ui.alpha = Math.min(1, acc);
     if (ui.tool && ui.hover) updatePreview();
-    R.render(st, S, ui, ts);
-    if (S.nn !== newsSeen) { var l = S.news[S.news.length - 1]; newsSeen = S.nn; if (l && l.k && !ui.modal) toast(l.s); dirty = true; }
-    if (S.over && !S.seenOver && !ui.modal) { S.seenOver = 1; openModal('over'); }
+    R.render(st, S, ui, ts); hear(ts);
+    if (S.nn !== newsSeen) { var l = S.news[S.news.length - 1]; newsSeen = S.nn; if (live && l && l.k) { if (!ui.modal) toast(l.s); if (CH.sound) CH.sound.news(l.k); } dirty = true; }
+    if (S.over && !S.rec) record();
+    if (live && S.over && !S.seenOver && !ui.modal) { S.seenOver = 1; openModal('over'); }
     if (toastUntil && ts > toastUntil) { $('toast').hidden = true; toastUntil = 0; }
     renderTip();
     if ((dirty || ts - lastUi > 260) && ts > holdUntil) {
       dirty = false; lastUi = ts;
       var ae = doc.activeElement, busy = ae && (ae.tagName === 'SELECT' || ae.tagName === 'INPUT') && $('inspect').contains(ae);
-      renderTop(); renderLeft(); if (!busy) renderInspect(); renderTabs(); renderBanner(); renderLens();
+      renderTitle(); if (live) { renderTop(); renderLeft(); if (!busy) renderInspect(); renderTabs(); renderBanner(); renderLens(); }
     }
     if (ts - lastMini > 240) { lastMini = ts; R.mini(st, S, ui, $('mini')); }
-    if (ui.modal && ts - lastModal > 1000 && ts > holdUntil) { lastModal = ts; var a = doc.activeElement, tag = a ? (a.tagName || '').toLowerCase() : ''; if (tag !== 'select' && tag !== 'input' && ui.modal !== 'help' && ui.modal !== 'confirm' && ui.modal !== 'over') renderModal(); }
-    if (ts - lastSave > 20000) save();
+    if (ui.modal && ts - lastModal > 1000 && ts > holdUntil) { lastModal = ts; var a = doc.activeElement, tag = a ? (a.tagName || '').toLowerCase() : ''; if (tag !== 'select' && tag !== 'input' && LIVE[ui.modal]) renderModal(); }
+    if (live && ts - lastSave > 20000) save();
   }
   function start(hot) {
     var text = hot && hot.save ? hot.save : null;
@@ -726,18 +920,22 @@
     var fresh = !S; if (S) { fromSave = true; loadedTick = S.tick; } else S = CH.newGame({ seed: (Date.now() % 2147483647) | 1 });
     st = R.init($('map'), S); R.resize(st);
     newsSeen = S.nn; ui.canStore = save();
+    if (hot && hot.save) ui.screen = 'game'; else doc.body.classList.add('titled');      // a page reloaded in the middle of work goes straight back to the game; everyone else meets the title
+    R.resize(st);
     if (hot && hot.cam) { ui.cam = hot.cam; R.clamp(st, ui.cam); } else home();
     bindMap();
-    doc.addEventListener('click', onClick); doc.addEventListener('change', onChange); doc.addEventListener('keydown', onKey);
+    doc.addEventListener('click', onClick); doc.addEventListener('change', onChange); doc.addEventListener('input', onChange); doc.addEventListener('keydown', onKey);
     doc.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('#left,#inspect,#modal,#top,#hud,#zoom,#tabs')) holdUntil = performance.now() + 700; }, true);
     doc.addEventListener('pointerup', function () { holdUntil = Math.min(holdUntil, performance.now() + 80); }, true);
     function fit() { R.resize(st); R.clamp(st, ui.cam); }
     root.addEventListener('resize', fit); if (root.ResizeObserver) new ResizeObserver(fit).observe($('mapwrap'));
-    doc.addEventListener('visibilitychange', function () { if (doc.hidden) save(); }); root.addEventListener('pagehide', save);
+    doc.addEventListener('visibilitychange', function () { if (doc.hidden) { save(); if (CH.sound) CH.sound.sleep(); } else if (CH.sound) CH.sound.wake(); }); root.addEventListener('pagehide', save);
+    if (CH.sound) { CH.sound.load(prefs.snd); CH.sound.prepare(); var awake = function () { CH.sound.wake(); }; doc.addEventListener('pointerdown', awake, true); doc.addEventListener('keydown', awake, true); }      // sound may only begin from a click or a key
     if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { st.tw = {}; refresh(); });      // text measured before the lettering arrived is measured again
     if (root.claude && root.claude.hot && root.claude.hot.snapshot) root.claude.hot.snapshot(function () { return { save: CH.serialize(S), cam: ui.cam }; });
-    if (fresh) openModal('help');
-    CH.ui = { state: function () { return S; }, ui: ui, act: ACT, st: st, click: mapClick };   // handy from the console and for tests
+    renderTitle();
+    CH.ui = { state: function () { return S; }, ui: ui, act: ACT, st: st, click: mapClick, slots: slots, records: records, prefs: prefs,
+      begin: function (o) { if (ui.modal) closeModal(); newGame(o); enter(); } };   // handy from the console and for tests; begin: straight into a new game, past the title
     root.requestAnimationFrame(frame);
   }
   var hot = root.claude && root.claude.hot;

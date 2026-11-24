@@ -2,7 +2,7 @@
 // from the prices he can see. Prints a line a year so the pace of money and towns can be judged.
 const { CH, D, WD, I, found, build, link, hire, route, run, siteOf, town } = require('./kit');
 const YEARS = +process.argv[2] || 40, QUIET = process.argv.includes('-q'), STRICT = process.argv.includes('--strict'), HANDS_OFF = process.argv.includes('--auto');
-const S = CH.newGame({ seed: +process.argv[3] || 7 });
+const S = CH.newGame({ seed: +process.argv[3] || 7, diff: process.env.DIFF });     // DIFF=easy or DIFF=hard plays the same script at another difficulty
 const mk = {}, ms = {}, R = {}, log = [];
 function tune(m, R) {
   const cap = CH.capFor(m, m.tr), ab = m.ab;

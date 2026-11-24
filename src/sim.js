@@ -21,6 +21,7 @@
   function pay(S, n, cat) { S.coins -= n; S.led.cur[cat] = (S.led.cur[cat] || 0) - n; }
   function earn(S, n, cat) { S.coins += n; S.led.cur[cat] = (S.led.cur[cat] || 0) + n; }
   function no(why) { return { ok: false, why: why }; }
+  function fee(S) { return S.fee == null ? K.DUES : S.fee; }      // the market fee of this game: its difficulty sets it
   function short(S, cost) { return 'Needs ' + cost + ' coins. You have ' + Math.floor(S.coins) + '.'; }
   var OK = { ok: true };
 
@@ -28,7 +29,7 @@
   function disc(cx, cy, r, fn) { for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) { if (dx * dx + dy * dy > r * r + r) continue; var x = cx + dx, y = cy + dy; if (inb(x, y)) fn(I(x, y), x, y); } }
   function rt(S) {
     if (S.__rt) return S.__rt;
-    var r = { own: new Int16Array(N), at: new Array(N), pv: 1, tv: 1, fl: {}, sp: {}, pc: {}, pcv: 0, dirty: [], fx: [] };
+    var r = { own: new Int16Array(N), at: new Array(N), pv: 1, tv: 1, fl: {}, sp: {}, pc: {}, pcv: 0, dirty: [], fx: [], snd: [] };
     Object.defineProperty(S, '__rt', { value: r, enumerable: false, writable: true });
     WD.sites.forEach(function (s, k) { r.at[I(s.x, s.y)] = { k: 'site', i: k }; });
     r.at[I(WD.hq.x, WD.hq.y)] = { k: 'hq' };
@@ -359,7 +360,7 @@
     var m = null, i, share = 0, round = 0;
     for (i = 0; i < S.ms.length; i++) if (S.ms[i].rt === R.id) { if (!m) m = S.ms[i]; share++; }
     R.stops.forEach(function (st, k) { round += legTicks(S, m, mkt(S, st.m), mkt(S, R.stops[(k + 1) % R.stops.length].m)); });
-    return { cap: m ? capFor(m, m.tr) : D.trans.porter.cap, sd: m && m.ab === 'sell' ? 1 : 1 - K.DUES, bd: m && m.ab === 'buy' ? 1 : 1 + K.DUES, yrs: round / TPY / (share || 1) };
+    return { cap: m ? capFor(m, m.tr) : D.trans.porter.cap, sd: m && m.ab === 'sell' ? 1 : 1 - fee(S), bd: m && m.ab === 'buy' ? 1 : 1 + fee(S), yrs: round / TPY / (share || 1) };
   }
   CH.act.own = function (S, R, k) {       // the player takes a stop over: its orders start as what a careful merchant would write there
     if (!R.stops[k]) return no(''); if (R.stops.length < 2) return no('Add 2 stops first.');
@@ -431,11 +432,12 @@
     var ax = a % W, ay = (a / W) | 0, bx = b % W, by = (b / W) | 0, sx = (bx - ax) - (by - ay);
     m.x = ax + (bx - ax) * m.pf; m.y = ay + (by - ay) * m.pf; if (sx) m.dir = sx > 0 ? 1 : -1;
   }
-  function tally(m, p) { m.pr += p; m.yr[0] += p; m.round += p; m.sm = (m.sm || 0) + p; }
+  function tally(m, p) { m.pr += p; m.yr[0] += p; m.round += p; m.sm = (m.sm || 0) + p; if (p > 0) m.ss = (m.ss || 0) + p; }
+  function heard(S, e) { var q = rt(S).snd; if (q.length < 24) q.push(e); }          // something worth a sound: the interface plays it if it is near the view
   function moved(mk, k, g) { var t = mk.tf || (mk.tf = { c: { i: {}, o: {} }, p: { i: {}, o: {} } }); t.c[k][g] = (t.c[k][g] || 0) + 1; }   // loads merchants bring in (i) and take out (o), this year (c) and last (p)
   function traded(S, mk, k, g) { var t = mk.tf; return t ? (t.c[k][g] || 0) + (t.p[k][g] || 0) * (1 - (S.tick % TPY) / TPY) : 0; }       // the same as a yearly rate: this year so far, plus the rest of a year at last year's pace
-  function sellOne(S, m, mk, g) { var p = sellP(S, mk, g) * (m.ab === 'sell' ? 1 : 1 - K.DUES); moved(mk, 'i', g); mk.stock[g] = (mk.stock[g] || 0) + 1; if (--m.cargo[g] <= 0) delete m.cargo[g]; earn(S, p, 'sales'); tally(m, p); }
-  function buyOne(S, m, mk, g) { var p = buyP(S, mk, g) * (m.ab === 'buy' ? 1 : 1 + K.DUES); moved(mk, 'o', g); mk.stock[g]--; m.cargo[g] = (m.cargo[g] || 0) + 1; pay(S, p, 'buys'); tally(m, -p); }
+  function sellOne(S, m, mk, g) { var p = sellP(S, mk, g) * (m.ab === 'sell' ? 1 : 1 - fee(S)); moved(mk, 'i', g); mk.stock[g] = (mk.stock[g] || 0) + 1; if (--m.cargo[g] <= 0) delete m.cargo[g]; earn(S, p, 'sales'); tally(m, p); }
+  function buyOne(S, m, mk, g) { var p = buyP(S, mk, g) * (m.ab === 'buy' ? 1 : 1 + fee(S)); moved(mk, 'o', g); mk.stock[g]--; m.cargo[g] = (m.cargo[g] || 0) + 1; pay(S, p, 'buys'); tally(m, -p); }
   /* How a merchant buys. At a stop left to him he takes whatever pays best among the goods that are cheap there: a
      load is worth buying only while it will fetch more at the stop where it comes off than it costs here, dues and
      all, and he never draws a market's shelves below the stock that keeps its price at the usual. Where the player has written the orders he loads those goods and no others, up to the numbers given: only
@@ -469,7 +471,7 @@
   }
   function trade(S, m, R) {              // unload first, then load
     var st = R.stops[m.si], mk = mkt(S, st.m), g, n, careful = st.auto || !R.strict, dear = 0;
-    var sd = m.ab === 'sell' ? 1 : 1 - K.DUES, bd = m.ab === 'buy' ? 1 : 1 + K.DUES;
+    var sd = m.ab === 'sell' ? 1 : 1 - fee(S), bd = m.ab === 'buy' ? 1 : 1 + fee(S);
     if (!m.sold) {
       m.sold = 1;
       if (st.un === 'all') { for (g in m.cargo) if (!(st.ld[g] > 0)) { n = m.cargo[g]; while (n-- > 0) sellOne(S, m, mk, g); } }
@@ -509,7 +511,8 @@
   }
   function leave(S, m, R) {
     if (m.si === R.stops.length - 1) { m.trips++; m.last = m.round; m.round = 0; if (m.tr === 'cart' && m.rc) S.cnt.cart = 1; m.rc = m.tr === 'cart' ? 1 : 0; }
-    var fx = rt(S).fx; if (m.sm && fx.length < 40) fx.push({ x: m.x, y: m.y, v: m.sm }); m.sm = 0;
+    var fx = rt(S).fx; if (m.sm && fx.length < 40) fx.push({ x: m.x, y: m.y, v: m.sm });
+    if (m.sm || m.ss) heard(S, { k: 'trade', x: m.x, y: m.y, sold: m.ss || 0, net: m.sm || 0 }); m.sm = 0; m.ss = 0;
     m.si = (m.si + 1) % R.stops.length; m.why = ''; m.wd = 0; head(S, m, R);
   }
   function tickMerchant(S, m) {
@@ -600,6 +603,7 @@
     var h = [best % W, (best / W) | 0, m.id, Math.floor(rnd(S) * 4)];
     S.hs.push(h); r.at[best] = { k: 'house', h: h }; clearTile(S, best); m.pop++; r.tv++;
     if (!quiet && r.fx.length < 40) r.fx.push({ x: h[0], y: h[1], s: '+1 house' });
+    if (!quiet) heard(S, { k: 'house', x: h[0], y: h[1], n: m.pop });
     return true;
   }
   function dropHouse(S, m) {
@@ -607,7 +611,7 @@
     for (var i = 0; i < S.hs.length; i++) { var h = S.hs[i]; if (h[2] !== m.id) continue; var d = Math.hypot(h[0] - m.x, h[1] - m.y) + rnd(S) * 2; if (d > bd) { bd = d; best = i; } }
     if (best < 0) return;
     var g = S.hs[best]; S.hs.splice(best, 1); r.at[I(g[0], g[1])] = null; m.pop--; r.tv++; m.lost = S.tick;
-    if (r.fx.length < 40) r.fx.push({ x: g[0], y: g[1], s: '\u22121 house' });
+    if (r.fx.length < 40) r.fx.push({ x: g[0], y: g[1], s: '\u22121 house' }); heard(S, { k: 'left', x: g[0], y: g[1] });
   }
   function tickTown(S, m) {
     for (var k = 0; k < D.house.length; k++) {
@@ -653,6 +657,7 @@
     rollCands(S);
     if (y >= D.span[1] && !S.over) { S.over = 1; S.final = Math.round(S.coins); say(S, y + ': the Portuguese fleet arrives at Malacca. Game over. Final score recorded.', 'end'); }
   }
+  function reward(S, g) { return Math.round(g.r * (D.diffs[S.diff] || D.diffs.normal).goal); }
   function goals(S) {
     var top = 0; S.mk.forEach(function (m) { if (m.pop > top) top = m.pop; });
     if (top > (S.top || 0)) S.top = top;
@@ -661,8 +666,8 @@
       road: !!S.cnt.cart, h40: top >= 40, orn: S.cnt.orn > 0, c50: S.coins >= 50000, h100: top >= 100 };
     D.goals.forEach(function (g) {
       if (!ok[g.id] || S.goals[g.id]) return;
-      S.goals[g.id] = S.tick || 1; if (g.r) earn(S, g.r, 'goals');
-      say(S, 'Goal complete: ' + g.t + '.' + (g.r ? ' Reward: +' + g.r + ' coins.' : ''), 'goal');
+      var r = reward(S, g); S.goals[g.id] = S.tick || 1; if (r) earn(S, r, 'goals');
+      say(S, 'Goal complete: ' + g.t + '.' + (r ? ' Reward: +' + r + ' coins.' : ''), 'goal');
     });
   }
   CH.tick = function (S) {
@@ -697,8 +702,8 @@
 
   /* ---------- starting, saving ---------- */
   CH.newGame = function (o) {
-    o = o || {}; var seed = (o.seed || 20011) | 0, id;
-    var S = { v: 3, seed: seed, rs: seed, tick: 0, coins: D.startCoins, mk: [], bl: [], hs: [], st: [], path: {}, clear: {}, ms: [], rt: [], adv: {}, flags: {}, goals: {}, news: [], nn: 0,
+    o = o || {}; var seed = (o.seed || 20011) | 0, id, diff = D.diffs[o.diff] ? o.diff : 'normal';
+    var S = { v: 3, seed: seed, rs: seed, tick: 0, name: String(o.name || D.company).slice(0, 32), diff: diff, fee: D.diffs[diff].fee, coins: D.diffs[diff].coins, mk: [], bl: [], hs: [], st: [], path: {}, clear: {}, ms: [], rt: [], adv: {}, flags: {}, goals: {}, news: [], nn: 0,
       led: { cur: {}, prev: {} }, hist: [], cnt: {}, nid: 1, hired: 0, over: 0, cand: [], top: 0 };
     WD.sites.forEach(function () { S.st.push({ mk: 0, p: 0, g: 0, on: 0 }); });
     WD.fixed.forEach(function (f) { S.bl.push(mkBld(S, f.t, f.x, f.y, 0)); });
@@ -710,7 +715,13 @@
   CH.serialize = function (S) { return JSON.stringify(S); };
   CH.revive = function (o) {
     if (!o || o.v !== 3 || !Array.isArray(o.mk) || !Array.isArray(o.ms) || !Array.isArray(o.st) || o.st.length !== WD.sites.length) throw new Error('Save from another game version.');
+    if (!D.diffs[o.diff]) o.diff = 'normal'; if (typeof o.fee !== 'number') o.fee = D.diffs[o.diff].fee; if (!o.name) o.name = D.company;      // saves from before a game had a name and a difficulty
     rt(o); return o;
+  };
+  /* What a save list shows about a game, without opening it. */
+  CH.summary = function (S) {
+    var pop = 0; S.mk.forEach(function (m) { pop += m.pop; });
+    return { name: S.name || D.company, diff: S.diff || 'normal', year: year(S), coins: Math.round(S.coins), rank: CH.rank(S.over ? S.final : S.coins), pop: pop, mk: S.mk.length, ms: S.ms.length, over: S.over ? 1 : 0, tick: S.tick };
   };
 
   /* ---------- what the interface asks ---------- */
@@ -734,7 +745,7 @@
     },
     route: function (S, R, m) {          // what one round would carry and earn at today's prices and from today's shelves, stop by stop
       var cap = m ? capFor(m, m.tr) : D.trans.porter.cap, cargo = {}, n = 0, out = [], total = 0, dl = {}, over = false;
-      var sd = m && m.ab === 'sell' ? 1 : 1 - K.DUES, bd = m && m.ab === 'buy' ? 1 : 1 + K.DUES;
+      var sd = m && m.ab === 'sell' ? 1 : 1 - fee(S), bd = m && m.ab === 'buy' ? 1 : 1 + fee(S);
       for (var pass = 0; pass < 2; pass++) {
         dl = {}; out = []; total = 0; over = false;
         R.stops.forEach(function (st, k) {
@@ -762,5 +773,5 @@
   CH.rank = function (c) { var r = D.ranks[0][1]; D.ranks.forEach(function (q) { if (c >= q[0]) r = q[1]; }); return r; };
   CH.year = year; CH.price = price; CH.cover = cover; CH.hireCost = hireCost; CH.capFor = capFor; CH.load = load; CH.where = where; CH.flows = flows; CH.tOf = tOf;
   CH.depot = depot; CH.routeOf = routeOf; CH.mkt = mkt; CH.ter = ter; CH.rt = rt; CH.way = way; CH.stopTile = stopTile; CH.layCost = layCost; CH.live = live; CH.disc = disc;
-  CH.sellP = sellP; CH.buyP = buyP; CH.I = I; CH.mult = mult; CH.outlet = outlet; CH.traded = traded;
+  CH.sellP = sellP; CH.buyP = buyP; CH.I = I; CH.mult = mult; CH.outlet = outlet; CH.traded = traded; CH.fee = fee; CH.reward = reward;
 })(typeof window !== 'undefined' ? window : globalThis);

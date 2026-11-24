@@ -13,7 +13,7 @@ const CHROME = process.env.CHROME || (require('fs').existsSync('/usr/bin/google-
     if (val === null) await p.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new Error('denied'); } }); });
     else await p.addInitScript(v => { try { localStorage.setItem('countinghouse.save.v3', v); } catch (e) {} }, val);
     await p.goto(url); await p.waitForTimeout(1200);
-    const st = await p.evaluate(() => { const S = CH.ui.state(); return { year: CH.year(S), tick: S.tick, markets: S.mk.length, modal: CH.ui.ui.modal, canStore: CH.ui.ui.canStore, toast: document.getElementById('toast').hidden ? '' : document.getElementById('toast').textContent }; });
+    const st = await p.evaluate(() => { const S = CH.ui.state(); return { year: CH.year(S), tick: S.tick, markets: S.mk.length, screen: CH.ui.ui.screen, menu: [].map.call(document.querySelectorAll('#title .tbtn b'), b => b.textContent).join('|'), canStore: CH.ui.ui.canStore, toast: document.getElementById('toast').hidden ? '' : document.getElementById('toast').textContent }; });
     console.log(name.padEnd(16), JSON.stringify(st), errs.length ? 'PAGE ERRORS: ' + errs.join(' | ') : '');
     await ctx.close();
   }

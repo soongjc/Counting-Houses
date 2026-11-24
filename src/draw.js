@@ -531,7 +531,7 @@
        for each thing it wants, red while the shelves are bare. Under a market's name, a disc for each thing its houses
        need and a square for each good it has to spare. With one good picked from the bar, everything that makes or wants
        it is ringed gold and every market shows its price. */
-    var lens = ui.lens && G[ui.lens] ? ui.lens : null, plain = !!ui.plain && !lens, tags = z >= 0.5 && !plain, PALE = 'rgba(242,230,201,.75)', hotl = st.hot = [];
+    var lens = ui.lens && G[ui.lens] ? ui.lens : null, plain = (!!ui.plain && !lens) || ui.screen === 'title', tags = z >= 0.5 && !plain, PALE = 'rgba(242,230,201,.75)', hotl = st.hot = [];
     function mark(x0, y0, x1, y1, o) { hotl.push([x0, y0, x1, y1, o]); }
     function sp(x, y) { return [(cx(x, y) - cam.x) * z, (cy(x, y) - cam.y) * z]; }
     function vis(q) { return q[0] > -60 && q[1] > -20 && q[0] < st.vw + 60 && q[1] < st.vh + 220; }

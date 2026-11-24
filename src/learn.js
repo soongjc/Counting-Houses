@@ -126,7 +126,7 @@
   /* Carrying one good from A to B, load by load. Each load bought lifts the price at A; each sold presses it down at
      B. The rising steps are what the next load costs, the falling steps what it fetches, both with the market's dues.
      He carries until they meet, and the gold between them is the profit of the trip. */
-  function terms(m, auto) { return { sd: m && m.ab === 'sell' ? 1 : 1 - K.DUES, bd: m && m.ab === 'buy' ? 1 : 1 + K.DUES, cap: m ? CH.capFor(m, m.tr) : D.trans.porter.cap, auto: !!auto }; }
+  function terms(S, m, auto) { return { sd: m && m.ab === 'sell' ? 1 : 1 - CH.fee(S), bd: m && m.ab === 'buy' ? 1 : 1 + CH.fee(S), cap: m ? CH.capFor(m, m.tr) : D.trans.porter.cap, auto: !!auto }; }
   function legOf(S, A, B, g, o) {
     var s = A.stock[g] || 0, T = CH.tOf(CH.flows(S, A), g), cost = [], rev = [], k, avail = 0, n = 0, tot = 0, N = 32;
     for (k = 0; k < N; k++) { if (s - k < 1 || (o.auto && s - k <= T)) break; avail++; }     // left to himself he never draws a market below its comfortable stock
@@ -171,13 +171,13 @@
       var st = R.stops[k]; if (!st || !G[g]) return '';
       var A = mk(S, st.m), B = CH.outlet(S, R, k, g);
       if (!B || B === A) return '<div class="kcard"><p class="kline">Set a later stop to unload ' + gl(g) + '.</p></div>';
-      return '<div class="kcard"><p class="khead">' + gi(g) + esc(G[g].n) + ', ' + esc(A.name) + ' to ' + esc(B.name) + '</p>' + legBody(S, A, B, g, terms(m, st.auto)) +
+      return '<div class="kcard"><p class="khead">' + gi(g) + esc(G[g].n) + ', ' + esc(A.name) + ' to ' + esc(B.name) + '</p>' + legBody(S, A, B, g, terms(S, m, st.auto)) +
         '<p class="hint">' + btn('Lesson: diminishing returns', 'lesson', { id: 'margin' }, 'link') + '</p></div>';
     });
   };
   /* the good at a stop that comes nearest to paying: what to show when nothing does */
   api.bestLeg = function (S, R, k, m) {
-    var st = R.stops[k], A = st && mk(S, st.m), o = terms(m, st && st.auto), best = null, bv = -1e9; if (!A) return null;
+    var st = R.stops[k], A = st && mk(S, st.m), o = terms(S, m, st && st.auto), best = null, bv = -1e9; if (!A) return null;
     D.goodIds.forEach(function (g) {
       if ((A.stock[g] || 0) < 1) return; var B = CH.outlet(S, R, k, g); if (!B || B === A || !CH.tOf(CH.flows(S, B), g)) return;
       var v = CH.sellP(S, B, g, 0) * o.sd - CH.buyP(S, A, g, 0) * o.bd; if (v > bv) { bv = v; best = g; }
@@ -214,7 +214,7 @@
   }
   function fig(caption, inner) { return inner ? '<figure class="lfig"><figcaption>' + caption + '</figcaption>' + inner + '</figure>' : ''; }
   function curveFig(S, d) { var m = mk(S, d.m); if (!m || !CH.tOf(CH.flows(S, m), d.g)) return ''; var gh = ghostOf(S, m, d.g); return fig(gi(d.g) + esc(G[d.g].n) + ' at ' + esc(m.name) + ' today', curve(S, m, d.g, { ghost: gh }) + curveKey(S, m, d.g, gh ? yr(m.ref.t) : 0) + flowLine(S, m, d.g)); }
-  function legFig(S, d) { var A = mk(S, d.a), B = mk(S, d.b); return A && B ? fig(gi(d.g) + esc(G[d.g].n) + ', ' + esc(A.name) + ' to ' + esc(B.name) + ' today', legBody(S, A, B, d.g, terms(who(S, d.ms), true))) : ''; }
+  function legFig(S, d) { var A = mk(S, d.a), B = mk(S, d.b); return A && B ? fig(gi(d.g) + esc(G[d.g].n) + ', ' + esc(A.name) + ' to ' + esc(B.name) + ' today', legBody(S, A, B, d.g, terms(S, who(S, d.ms), true))) : ''; }
 
   /* ---------- the lessons ----------
      Each is a card: the name economists give the idea, the rule in one line, the figures of the moment it first showed
@@ -304,7 +304,7 @@
     { id: 'margin', part: 'Trade', need: 'arb', ev: 'margin', t: 'Diminishing returns', rule: 'Each extra load costs more to buy and sells for less. Stop at the last profitable load.', how: 'a merchant leaves a stop with spare capacity',
       see: function (S, e) {
         var m = who(S, e.ms), A = mk(S, e.a), B = mk(S, e.b); if (!m || !A || !B || !(e.n > 0)) return null;
-        var o = terms(m, true), m1 = CH.sellP(S, B, e.g, 0) * o.sd - CH.buyP(S, A, e.g, e.n) * o.bd, mx = CH.sellP(S, B, e.g, e.n) * o.sd - CH.buyP(S, A, e.g, 0) * o.bd;
+        var o = terms(S, m, true), m1 = CH.sellP(S, B, e.g, 0) * o.sd - CH.buyP(S, A, e.g, e.n) * o.bd, mx = CH.sellP(S, B, e.g, e.n) * o.sd - CH.buyP(S, A, e.g, 0) * o.bd;
         return e.n >= 2 && m1 > mx + 2 && m1 >= 4 ? { ms: m.id, nm: m.nm, a: A.id, b: B.id, g: e.g, n: e.n, cap: e.cap, m1: Math.round(m1), mx: Math.round(mx) } : null;
       },
       note: function (S, d) { return d.nm + ' loaded ' + d.n + ' ' + gl(d.g) + ' and kept spare capacity. Profit of the next load: ' + sg(d.mx) + '.'; },
@@ -315,14 +315,14 @@
         for (var i = 0; i < S.ms.length; i++) {
           var m = S.ms[i], R = m.rt && CH.routeOf(S, m.rt); if (!R || R.stops.length < 2 || m.trips < 2 || m.st !== 'wait' || !m.wd || m.why === '$') continue;
           var k = m.si, A = mk(S, R.stops[k].m), g = G[m.why] ? m.why : api.bestLeg(S, R, k, m); if (!A || !g) continue;
-          var B = CH.outlet(S, R, k, g), o = terms(m, R.stops[k].auto); if (!B || B === A) continue;
+          var B = CH.outlet(S, R, k, g), o = terms(S, m, R.stops[k].auto); if (!B || B === A) continue;
           var pa = CH.buyP(S, A, g, 0), pb = CH.sellP(S, B, g, 0); if (pb * o.sd - pa * o.bd > K.EDGE) continue;
           return { ms: m.id, nm: m.nm, a: A.id, b: B.id, g: g, pa: Math.round(pa), pb: Math.round(pb) };
         }
         return null;
       },
       note: function (S, d) { return d.nm + ' waits at ' + M(S, d.a) + '. ' + G[d.g].n + ': buy ' + d.pa + ' there, sell ' + d.pb + ' at ' + M(S, d.b) + '. Profitable loads: 0.'; },
-      stats: function (S, d) { return [[G[d.g].n + ' at ' + M(S, d.a), 'buy ' + d.pa], ['At ' + M(S, d.b), 'sell ' + d.pb], ['Market fee', Math.round(K.DUES * 100) + '% at each end'], ['Profitable loads', '0']]; },
+      stats: function (S, d) { return [[G[d.g].n + ' at ' + M(S, d.a), 'buy ' + d.pa], ['At ' + M(S, d.b), 'sell ' + d.pb], ['Market fee', Math.round(CH.fee(S) * 100) + '% at each end'], ['Profitable loads', '0']]; },
       fig: legFig, tip: function () { return 'To revive the route: add a stop, grow a town, or build a buyer for the goods.'; } },
     { id: 'choice', part: 'Trade', need: 'arb', ev: 'choice', t: 'Opportunity cost', rule: 'A full cargo leaves other profitable goods behind. That lost profit is the opportunity cost.', how: 'a merchant leaves at full capacity while other profitable goods stay in stock',
       see: function (S, e) { var m = who(S, e.ms), A = mk(S, e.a); return m && A && e.v > 1.5 && G[e.g] && e.took && !e.took[e.g] ? { ms: m.id, nm: m.nm, a: A.id, g: e.g, v: Math.round(e.v), cap: e.cap, took: e.took } : null; },

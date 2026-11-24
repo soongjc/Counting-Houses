@@ -315,6 +315,9 @@
   CH.DEF = { W: W, H: H, T: T, goods: GOODS, goodIds: Object.keys(GOODS), sites: SITES, house: HOUSE, sizes: SIZES, bld: BLD, bldIds: Object.keys(BLD), trans: TRANS, adv: ADV,
     events: EVENTS, places: PLACES, spare: SPARE, abil: ABIL, names: NAMES, ranks: RANKS, goals: GOALS,
     title: 'Malacca', span: [1400, 1511], startCoins: 2500, tpy: 300,
+    /* Difficulty: the coins a company starts with, the market fee on every sale and purchase, and what its goals pay. */
+    diffs: { easy: { n: 'Easy', coins: 4000, fee: 0.03, goal: 1.5 }, normal: { n: 'Normal', coins: 2500, fee: 0.05, goal: 1 }, hard: { n: 'Hard', coins: 1500, fee: 0.08, goal: 0.5 } },
+    company: 'Malacca Trading Company',
     path: { trail: { n: 'Trail', cost: 4, code: 1 }, road: { n: 'Road', cost: 12, code: 2, adv: 'cart' } },
     hire: { base: 100, grow: 1.32, max: 6400, cap: 30, wage: 12 } };
 })(typeof window !== 'undefined' ? window : globalThis);

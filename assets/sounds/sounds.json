@@ -1,0 +1,386 @@
+{
+ "crowd": {
+  "what": "market crowd",
+  "level": 0.85,
+  "files": [
+   "crowd.mp3"
+  ],
+  "secs": [
+   17
+  ],
+  "loop": 1.5
+ },
+ "waves": {
+  "what": "waves on a beach",
+  "level": 0.8,
+  "files": [
+   "waves.mp3"
+  ],
+  "secs": [
+   17.2
+  ],
+  "loop": 1.5
+ },
+ "forest": {
+  "what": "forest",
+  "level": 0.6,
+  "files": [
+   "forest.mp3"
+  ],
+  "secs": [
+   14
+  ],
+  "loop": 1.5
+ },
+ "fire": {
+  "what": "kiln and forge fire",
+  "level": 0.8,
+  "files": [
+   "fire.mp3"
+  ],
+  "secs": [
+   9
+  ],
+  "loop": 1
+ },
+ "moo": {
+  "what": "ox",
+  "level": 0.5,
+  "files": [
+   "moo-1.mp3",
+   "moo-2.mp3",
+   "moo-3.mp3"
+  ],
+  "secs": [
+   2.05,
+   1.48,
+   1.55
+  ]
+ },
+ "cart": {
+  "what": "ox cart rolling",
+  "level": 0.45,
+  "files": [
+   "cart-1.mp3",
+   "cart-2.mp3"
+  ],
+  "secs": [
+   3.2,
+   3.2
+  ]
+ },
+ "gull": {
+  "what": "gull",
+  "level": 0.45,
+  "files": [
+   "gull-1.mp3",
+   "gull-2.mp3",
+   "gull-3.mp3"
+  ],
+  "secs": [
+   0.75,
+   0.75,
+   0.85
+  ]
+ },
+ "bird": {
+  "what": "forest birds",
+  "level": 0.4,
+  "files": [
+   "bird-1.mp3",
+   "bird-2.mp3",
+   "bird-3.mp3"
+  ],
+  "secs": [
+   3.4,
+   2.8,
+   4
+  ]
+ },
+ "cluck": {
+  "what": "hens",
+  "level": 0.4,
+  "files": [
+   "cluck-1.mp3",
+   "cluck-2.mp3"
+  ],
+  "secs": [
+   2.6,
+   2.64
+  ]
+ },
+ "rooster": {
+  "what": "rooster",
+  "level": 0.4,
+  "files": [
+   "rooster-1.mp3",
+   "rooster-2.mp3"
+  ],
+  "secs": [
+   1.72,
+   1.72
+  ]
+ },
+ "splash": {
+  "what": "oars",
+  "level": 0.4,
+  "files": [
+   "splash-1.mp3",
+   "splash-2.mp3",
+   "splash-3.mp3"
+  ],
+  "secs": [
+   1.8,
+   2.5,
+   2.59
+  ]
+ },
+ "hammer": {
+  "what": "smith at the anvil",
+  "level": 0.4,
+  "files": [
+   "hammer-1.mp3",
+   "hammer-2.mp3",
+   "hammer-3.mp3"
+  ],
+  "secs": [
+   1.6,
+   1.6,
+   1.2
+  ]
+ },
+ "pick": {
+  "what": "pick on rock",
+  "level": 0.35,
+  "files": [
+   "pick-1.mp3",
+   "pick-2.mp3",
+   "pick-3.mp3"
+  ],
+  "secs": [
+   0.9,
+   0.85,
+   0.8
+  ]
+ },
+ "chop": {
+  "what": "axe on wood",
+  "level": 0.4,
+  "files": [
+   "chop-1.mp3",
+   "chop-2.mp3"
+  ],
+  "secs": [
+   1.85,
+   1.85
+  ]
+ },
+ "saw": {
+  "what": "hand saw",
+  "level": 0.35,
+  "files": [
+   "saw-1.mp3",
+   "saw-2.mp3"
+  ],
+  "secs": [
+   2.45,
+   2.7
+  ]
+ },
+ "coin": {
+  "what": "a coin",
+  "level": 0.5,
+  "files": [
+   "coin-1.mp3",
+   "coin-2.mp3",
+   "coin-3.mp3"
+  ],
+  "secs": [
+   0.34,
+   0.36,
+   0.4
+  ]
+ },
+ "coins": {
+  "what": "coins counted",
+  "level": 0.55,
+  "files": [
+   "coins-1.mp3",
+   "coins-2.mp3",
+   "coins-3.mp3"
+  ],
+  "secs": [
+   1.1,
+   1.22,
+   1.32
+  ]
+ },
+ "register": {
+  "what": "cash register",
+  "level": 0.6,
+  "files": [
+   "register.mp3"
+  ],
+  "secs": [
+   2.3
+  ]
+ },
+ "buy": {
+  "what": "a purse set down",
+  "level": 0.45,
+  "files": [
+   "buy-1.mp3",
+   "buy-2.mp3"
+  ],
+  "secs": [
+   0.42,
+   0.34
+  ]
+ },
+ "build": {
+  "what": "hammering",
+  "level": 0.5,
+  "files": [
+   "build-1.mp3",
+   "build-2.mp3"
+  ],
+  "secs": [
+   1.62,
+   1.55
+  ]
+ },
+ "path": {
+  "what": "shovel",
+  "level": 0.45,
+  "files": [
+   "path-1.mp3",
+   "path-2.mp3"
+  ],
+  "secs": [
+   0.9,
+   0.75
+  ]
+ },
+ "hire": {
+  "what": "two balafon notes",
+  "level": 0.45,
+  "files": [
+   "hire.mp3"
+  ],
+  "secs": [
+   1.08
+  ]
+ },
+ "tick": {
+  "what": "woodblock",
+  "level": 0.3,
+  "files": [
+   "tick.mp3"
+  ],
+  "secs": [
+   0.3
+  ]
+ },
+ "deny": {
+  "what": "wooden knock",
+  "level": 0.45,
+  "files": [
+   "deny.mp3"
+  ],
+  "secs": [
+   0.4
+  ]
+ },
+ "start": {
+  "what": "soft gong",
+  "level": 0.5,
+  "files": [
+   "start.mp3"
+  ],
+  "secs": [
+   3.4
+  ]
+ },
+ "pop": {
+  "what": "a plank set",
+  "level": 0.4,
+  "files": [
+   "pop-1.mp3",
+   "pop-2.mp3"
+  ],
+  "secs": [
+   0.5,
+   0.5
+  ]
+ },
+ "left": {
+  "what": "a door closing",
+  "level": 0.35,
+  "files": [
+   "left.mp3"
+  ],
+  "secs": [
+   0.68
+  ]
+ },
+ "lesson": {
+  "what": "a warm tone",
+  "level": 0.45,
+  "files": [
+   "lesson.mp3"
+  ],
+  "secs": [
+   1.9
+  ]
+ },
+ "chime": {
+  "what": "mark tree",
+  "level": 0.45,
+  "files": [
+   "chime.mp3"
+  ],
+  "secs": [
+   2.8
+  ]
+ },
+ "warn": {
+  "what": "two drum beats",
+  "level": 0.5,
+  "files": [
+   "warn.mp3"
+  ],
+  "secs": [
+   1.7
+  ]
+ },
+ "goal": {
+  "what": "mallet fanfare",
+  "level": 0.6,
+  "files": [
+   "goal.mp3"
+  ],
+  "secs": [
+   3.2
+  ]
+ },
+ "milestone": {
+  "what": "a cheering crowd",
+  "level": 0.6,
+  "files": [
+   "milestone.mp3"
+  ],
+  "secs": [
+   4
+  ]
+ },
+ "over": {
+  "what": "great gong",
+  "level": 0.7,
+  "files": [
+   "over.mp3"
+  ],
+  "secs": [
+   7
+  ]
+ }
+}

@@ -1,0 +1,61 @@
+# Sound credits
+
+Every sound in the game is cut from a recording published under an open licence. Each one was trimmed, faded, levelled and encoded as MP3 by `tools/sounds/make.js`; `tools/sounds/recipe.js` holds the exact cuts and download addresses.
+
+## Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+These recordings require credit. Changes made: trimmed, faded, levelled, converted to mono MP3.
+
+- "Shoveling" by andersmmg, CC BY 4.0. https://freesound.org/people/andersmmg/sounds/516318/ (path)
+- Oculus Audio Pack 01: "AMBForst_Forest_LOOP_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (forest)
+- Oculus Audio Pack 01: "AMBForst_ForestBirds_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (bird)
+- Oculus Audio Pack 01: "AMBForst_ForestBirds_OS_02" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (bird)
+- Oculus Audio Pack 01: "AMBForst_ForestBirds_OS_03" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (bird)
+- Oculus Audio Pack 01: "BIRDFowl_Chicken_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (cluck)
+- Oculus Audio Pack 01: "BOATRow_RowboatOarRowing_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (splash)
+- Oculus Audio Pack 01: "BOATRow_RowboatOarRowing_OS_03" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (splash)
+- Oculus Audio Pack 01: "BOATRow_RowboatOarRowing_OS_05" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (splash)
+- Oculus Audio Pack 01: "METLImpt_HammerAnvil_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (hammer)
+- Oculus Audio Pack 01: "METLImpt_HammerAnvilAmbient_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (hammer)
+- Oculus Audio Pack 01: "TOOLHand_WoodCutSaw_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (saw)
+- Oculus Audio Pack 01: "WEAPAxe_WoodCutAxe_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (chop)
+- Oculus Audio Pack 01: "MUSCStngr_VictoryMallet_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (goal)
+- Oculus Audio Pack 01: "MUSCStngr_LevelUpMallet_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (milestone)
+- Oculus Audio Pack 01: "UIAlert_MusicTone_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (lesson)
+- Oculus Audio Pack 01: "UIAlert_WoodError_OS_01" by Oculus VR, LLC, CC BY 4.0. https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/ (deny)
+
+## Public domain, CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+No credit is required for these. Thank you to the people who recorded and shared them.
+
+- "Large Crowd at an Outdoor Reception" by timothyd4y, CC0 1.0. https://freesound.org/people/timothyd4y/sounds/472606/ (crowd)
+- "Wave on the beach in Thailand, at 20 meters from the water, during the night" by felix.blume, CC0 1.0. https://freesound.org/people/felix.blume/sounds/510236/ (waves)
+- "Crackling Flames (loop)" by NickTayloe, CC0 1.0. https://freesound.org/people/NickTayloe/sounds/813328/ (fire)
+- "Seagulls screeching on the beach, on the peruvian shore" by felix.blume, CC0 1.0. https://freesound.org/people/felix.blume/sounds/155747/ (gull)
+- "G52-05-Ox Cart" by craigsmith, CC0 1.0. https://freesound.org/people/craigsmith/sounds/437078/ (cart)
+- "R28-41-Hammer Metal Stakes or Nails" by craigsmith, CC0 1.0. https://freesound.org/people/craigsmith/sounds/487086/ (build)
+- "Counting Me Shillings" by husky70, CC0 1.0. https://freesound.org/people/husky70/sounds/161315/ (coin, coins)
+- "Cash Register Purchase" by Zott820, CC0 1.0. https://freesound.org/people/Zott820/sounds/209578/ (register)
+- "Cow mooing in south of France (Limousin)" by felix.blume, CC0 1.0. https://freesound.org/people/felix.blume/sounds/163727/ (moo)
+- "Two bulls singing in the desert of Arizona" by felix.blume, CC0 1.0. https://freesound.org/people/felix.blume/sounds/202111/ (moo)
+- "Bulls and cows in a field in Missouri, USA" by felix.blume, CC0 1.0. https://freesound.org/people/felix.blume/sounds/202795/ (moo)
+- "rooster cock-a-doodle-doo" by videog, CC0 1.0. https://freesound.org/people/videog/sounds/149189/ (rooster)
+- "Rooster - Crow 2 - 96kHz" by JarredGibb, CC0 1.0. https://freesound.org/people/JarredGibb/sounds/233160/ (rooster)
+- "chicken_chatter" by jsbarrett, CC0 1.0. https://freesound.org/people/jsbarrett/sounds/200330/ (cluck)
+- "cheering and clapping crowd 2" by AlaskaRobotics, CC0 1.0. https://freesound.org/people/AlaskaRobotics/sounds/221567/ (milestone)
+- "WoodSaw2" by Pingel, CC0 1.0. https://freesound.org/people/Pingel/sounds/9887/ (saw)
+- Versilian Community Sample Library: "Gong 1, forte" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (over)
+- Versilian Community Sample Library: "Gong 2, light hit" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (start)
+- Versilian Community Sample Library: "Mark tree, ascending" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (chime)
+- Versilian Community Sample Library: "Frame drum, hit" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (warn)
+- Versilian Community Sample Library: "Woodblock" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (tick)
+- Versilian Community Sample Library: "Balafon, F4" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (hire)
+- Versilian Community Sample Library: "Balafon, C5" by Versilian Studios, CC0 1.0. https://github.com/sgossner/VCSL (hire)
+- RPG Audio: "drop_leather" by Kenney, CC0 1.0. https://kenney.nl/assets/rpg-audio (buy)
+- RPG Audio: "handle_small_leather" by Kenney, CC0 1.0. https://kenney.nl/assets/rpg-audio (buy)
+- RPG Audio: "door_close_1" by Kenney, CC0 1.0. https://kenney.nl/assets/rpg-audio (left)
+- Impact Sounds: "impact_plank_medium_000" by Kenney, CC0 1.0. https://kenney.nl/assets/impact-sounds (pop)
+- Impact Sounds: "impact_plank_medium_001" by Kenney, CC0 1.0. https://kenney.nl/assets/impact-sounds (pop)
+- Impact Sounds: "impact_mining_000" by Kenney, CC0 1.0. https://kenney.nl/assets/impact-sounds (pick)
+- Impact Sounds: "impact_mining_001" by Kenney, CC0 1.0. https://kenney.nl/assets/impact-sounds (pick)
+- Impact Sounds: "impact_mining_002" by Kenney, CC0 1.0. https://kenney.nl/assets/impact-sounds (pick)
