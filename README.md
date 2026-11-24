@@ -90,6 +90,7 @@ node tools/shot.js shell      # the title screen, new game, saves, export and im
 node tools/shot.js sound      # the sound engine: it starts on a click, decodes its recordings, and the ambience follows the view
 node tools/shot.js sweep      # every panel and dialog read as text into shots/sweep.txt
 node tools/csp.js             # the page under a strict content security policy, in a sandboxed frame
+node tools/hosted.js          # the page inside Claude's artifact viewer (file export through the viewer) and sound start on a touch screen
 node tools/badsave.js         # damaged saves and blocked storage
 ```
 

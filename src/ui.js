@@ -449,10 +449,11 @@
       return ['Load game', h];
     },
     save: function () {
+      saverReady();
       var a = slots(), h = ui.msg ? '<p class="note">' + esc(ui.msg) + '</p>' : '';
       h += B('Save as a new save', 'saveslot', null, 'btn gold wide', a.length >= MAXSLOTS ? ' disabled' : ' data-autofocus') + '<p class="hint">' + a.length + '/' + MAXSLOTS + ' saves used. The game also autosaves every 20 seconds.</p>';
       h += '<ul class="saves">'; a.forEach(function (q) { h += saveRow(q.s.name, q.s, q.t, B('Overwrite', 'saveslot', { id: q.id }, 'btn') + B('Delete', 'delslot', { id: q.id, from: 'save' }, 'btn')); }); h += '</ul>';
-      h += '<h3>Export</h3><p class="hint">Move this game to another device or browser. Load it there with Load game, Import.</p><div class="mfoot left">' + B('Export file', 'exportfile', null, 'btn') + B('Copy save code', 'copycode', null, 'btn') + '</div>';
+      h += '<h3>Export</h3><p class="hint">Move this game to another device or browser. Load it there with Load game, Import.</p><div class="mfoot left">' + (hosted() && !saver ? '' : B('Export file', 'exportfile', null, 'btn')) + B('Copy save code', 'copycode', null, 'btn') + '</div>';      // inside Claude's viewer the file button shows when the viewer can save files
       return ['Save game', h + '<div class="mfoot">' + B('Close', 'close', null, 'btn') + '</div>'];
     },
     records: function () {
@@ -576,7 +577,21 @@
     saveslot2: function (d) { var r = saveSlot(d.id); back(r.ok ? 'Game saved.' : r.why); },
     delslot: function (d) { var q = slots().filter(function (x) { return x.id === d.id; })[0]; if (q) ask('Delete this save?', q.s.name + ', ' + q.s.year + ', saved ' + when(q.t) + '. Deleting is permanent.', 'Delete', 'delslot2', { id: d.id }); },
     delslot2: function (d) { dropSlot(d.id); back('Save deleted.'); },
-    exportfile: function () { ui.msg = exportFile() ? 'Save file exported: ' + exportName() + '.' : 'File export is blocked in this browser. Use Copy save code.'; },
+    exportfile: function () {
+      var name = exportName();
+      if (!hosted()) { ui.msg = exportFile() ? 'Save file exported: ' + name + '.' : 'File export is blocked in this browser. Use Copy save code.'; return; }
+      if (!saver) { ui.msg = 'File export is unavailable here. Use Copy save code.'; saverReady(); return; }      // inside Claude's viewer the page hands the file to the viewer, who confirms the save
+      ui.msg = 'Exporting ' + name + '.';
+      var told = function (msg) { ui.msg = msg; if (ui.modal === 'save') renderModal(); };
+      try {
+        saver.save({ filename: name, data: CH.serialize(S) }).then(function () { told('Save file exported.'); }, function (err) {
+          var c = err && err.code;
+          if (c === 'declined') told('Export cancelled.');
+          else if (c === 'rate_limited') told('Export is busy. Try again in a moment.');
+          else { saver = null; saverOff = true; told(c === 'host_unavailable' ? 'File export is unavailable in this app. Use Copy save code, or open the game in a browser.' : 'File export is unavailable here. Use Copy save code.'); }      // the file button leaves the dialog
+        });
+      } catch (err) { saver = null; saverOff = true; ui.msg = 'File export is unavailable here. Use Copy save code.'; }
+    },
     copycode: function () {
       var text = CH.serialize(S);
       try { root.navigator.clipboard.writeText(text).then(function () { ui.msg = 'Save code copied. Paste it into Load game, Import on the other device.'; renderModal(); }, function () { ui.code = text; ui.msg = 'Copying is blocked in this browser. Open Load game: the code is in the Import box to copy by hand.'; renderModal(); }); }
@@ -838,6 +853,13 @@
   function toTitle() { save(); camKept = { x: ui.cam.x, y: ui.cam.y, z: ui.cam.z }; ui.screen = 'title'; ui.sel = null; ui.tool = null; ui.pick = null; doc.body.classList.add('titled'); frameMap(); renderTitle(); refresh(); }
   function drift(dt) { if (still) return; var c = ui.cam, x0 = c.x; c.x += driftDir * dt * 9 / c.z; R.clamp(st, c); if (Math.abs(c.x - x0) < 1e-3) driftDir = -driftDir; }      // the coast slides slowly past behind the title
   function exportName() { var s = CH.summary(S); return 'counting-house-' + (s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'save') + '-' + s.year + '.json'; }
+  /* Inside Claude's artifact viewer a page cannot start a download: it asks the viewer's `downloads` capability to save the file. Anywhere else the browser downloads it. */
+  var saver = null, saverOff = false;
+  function hosted() { return !!(root.claude && typeof root.claude.use === 'function'); }
+  function saverReady() {
+    if (saver || saverOff || !hosted()) return;
+    try { root.claude.use('downloads').then(function (d) { if (saverOff) return; saver = d || null; if (saver && ui.modal === 'save') renderModal(); }, function () {}); } catch (err) { /* the file button stays hidden */ }
+  }
   function exportFile() {
     try { var a = doc.createElement('a'), u = URL.createObjectURL(new Blob([CH.serialize(S)], { type: 'application/json' })); a.href = u; a.download = exportName(); doc.body.appendChild(a); a.click(); a.remove(); root.setTimeout(function () { URL.revokeObjectURL(u); }, 5000); return true; }
     catch (err) { return false; }
@@ -930,7 +952,8 @@
     function fit() { R.resize(st); R.clamp(st, ui.cam); }
     root.addEventListener('resize', fit); if (root.ResizeObserver) new ResizeObserver(fit).observe($('mapwrap'));
     doc.addEventListener('visibilitychange', function () { if (doc.hidden) { save(); if (CH.sound) CH.sound.sleep(); } else if (CH.sound) CH.sound.wake(); }); root.addEventListener('pagehide', save);
-    if (CH.sound) { CH.sound.load(prefs.snd); CH.sound.prepare(); var awake = function () { CH.sound.wake(); }; doc.addEventListener('pointerdown', awake, true); doc.addEventListener('keydown', awake, true); }      // sound may only begin from a click or a key
+    if (CH.sound) { CH.sound.load(prefs.snd); CH.sound.prepare(); var awake = function () { CH.sound.wake(); }; ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(function (ev) { doc.addEventListener(ev, awake, true); }); }      // sound may only begin from a click, a tap or a key; a tap counts when the finger lifts
+    saverReady();
     if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { st.tw = {}; refresh(); });      // text measured before the lettering arrived is measured again
     if (root.claude && root.claude.hot && root.claude.hot.snapshot) root.claude.hot.snapshot(function () { return { save: CH.serialize(S), cam: ui.cam }; });
     renderTitle();
